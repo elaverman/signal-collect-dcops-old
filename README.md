@@ -27,6 +27,10 @@ After cloning the repository, go to the project folder and start SBT on the comm
 
 To generate an Eclipse project, use the "eclipse" command on the SBT prompt and then follow the description in the "How to Develop in Eclipse" section of the "signal-collect" README. 
 
+Note
+-----
+Before submitting a job to a Torque host it is imperative to re-run "assembly" in SBT in order to have the last version run. 
+
 
 Bibliography:
 -----------------------

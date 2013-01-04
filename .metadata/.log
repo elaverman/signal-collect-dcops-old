@@ -1,0 +1,20 @@
+!SESSION 2012-03-07 16:31:35.675 -----------------------------------------------
+eclipse.buildId=M20120208-0800
+java.version=1.6.0_29
+java.vendor=Apple Inc.
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_US
+Framework arguments:  -keyring /Users/verman/.eclipse_keyring -showlocation
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -data /Users/verman/Documents/signal-collect-graphs -keyring /Users/verman/.eclipse_keyring -showlocation
+
+!ENTRY org.eclipse.core.net 1 0 2012-03-07 16:31:45.374
+!MESSAGE System property http.nonProxyHosts has been set to local|*.local|169.254/16|*.169.254/16 by an external source. This value will be overwritten using the values from the preferences
+!SESSION 2012-03-07 16:37:12.933 -----------------------------------------------
+eclipse.buildId=M20120208-0800
+java.version=1.6.0_29
+java.vendor=Apple Inc.
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_US
+Framework arguments:  -keyring /Users/verman/.eclipse_keyring -showlocation
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/verman/.eclipse_keyring -showlocation
+
+!ENTRY org.eclipse.core.net 1 0 2012-03-07 16:38:18.439
+!MESSAGE System property http.nonProxyHosts has been set to local|*.local|169.254/16|*.169.254/16 by an external source. This value will be overwritten using the values from the preferences

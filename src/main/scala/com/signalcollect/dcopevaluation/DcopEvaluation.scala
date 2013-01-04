@@ -49,7 +49,7 @@ object DcopEvaluation extends App {
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,
     executionHost = 
-//      new LocalHost 
+  //    new LocalHost 
      new TorqueHost(torqueHostname = "kraken.ifi.uzh.ch", localJarPath = "./target/signal-collect-dcops-assembly-2.0.0-SNAPSHOT.jar", torqueUsername = System.getProperty("user.name"), priority = TorquePriority.superfast)
     )
   val out = new java.io.FileWriter("results.txt")

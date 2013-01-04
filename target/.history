@@ -16,3 +16,8 @@ compile
 eclipse
 test
 assembly
+compile
+clean
+compile
+eclipse
+exit

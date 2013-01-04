@@ -21,3 +21,6 @@ clean
 compile
 eclipse
 exit
+assembly
+eclipse
+exit

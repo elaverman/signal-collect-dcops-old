@@ -32,6 +32,8 @@ import scala.math
 import com.signalcollect.interfaces.MessageBus
 
 /**
+ * Marden, Jason R., Gürdal Arslan, and Jeff S. Shamma. "Joint strategy fictitious play with inertia for potential games." Automatic Control, IEEE Transactions on 54.2 (2009): 208-220.
+ * 
  * Represents an Agent
  *
  *  @param id: the identifier of this vertex

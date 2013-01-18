@@ -28,13 +28,13 @@ package com.signalcollect.approx.flood
 import com.signalcollect._
 import com.signalcollect.configuration._
 import com.signalcollect.configuration.LoggingLevel._
-import scala.util._
 import scala.math
 import com.signalcollect.interfaces.MessageBus
 import com.signalcollect.interfaces.SignalMessage
 import com.signalcollect.dcopgraphproviders.AdoptFileGraphGenerator
 import com.signalcollect.interfaces.AggregationOperation
 import java.io.File
+import java.util.Random
 /**
  * Represents an Agent
  *
@@ -42,28 +42,58 @@ import java.io.File
  *  @param constraints: the set of constraints in which it is involved
  *  @param possibleValues: which values can the state take
  */
-class DSANVertex(id: Any, csts: Iterable[Constraint], possibleValues: Array[Int]) extends DataGraphVertex(id, 0.0) {
 
-  type Signal = Double
-  var time: Int = 0 //time counter used for calculating temperature
-  var oldState = possibleValues(0)
+//Takes vertex id, constraints for the vertex with that id and the domain of the variable represented by the vertex.
+trait ConstraintVertexBuilder extends Function3[Int, Iterable[Constraint], Array[Int], Vertex[Any, _]] with Serializable {
+  def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _]
+}
+
+class DSANVertexBuilder(algorithmDescription: String, explorationProbability: (Int, Double) => Double) extends ConstraintVertexBuilder {
+  def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
+    val r = new Random
+    val v = new DSANVertex(id, domain(r.nextInt(domain.size)), constraints, domain, explorationProbability)
+
+    for (ctr <- constraints) {
+      for (variable <- ctr.variablesList) {
+        if (variable != id) {
+          v.addEdge(new StateForwarderEdge(variable), null.asInstanceOf[GraphEditor[Any, Any]])
+        }
+      }
+    }
+
+    v
+  }
+
+  override def toString = "DSAN - " + algorithmDescription
+}
+
+class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibleValues: Array[Int], explorationProbability: (Int, Double) => Double) extends DataGraphVertex(id, initialState) {
+
+  type Signal = Int
+  val r = new Random
+
+  val startTime = System.nanoTime()
+  var time: Int = 0 //(System.nanoTime() - startTime)/    //time counter used for calculating temperature
+  //var oldState = possibleValues(0)
 
   val constraints: Iterable[Constraint] = csts
   var utility: Double = 0
   var numberHard: Int = constraints.foldLeft(0)((a, b) => a + b.hardInt) //number of hard constraints
   var numberSatisfied: Int = 0 //number of satisfied constraints
   var numberSatisfiedHard: Int = 0 //number of satisfied hard constraints
-  val constTemp: Double = 100 //constant for calculating temperature
+  //val constTemp: Double = 100 //constant for calculating temperature
 
   val alarm: Timer = new Timer(100) //Seems unnecessary
 
-  println(constraints)
+  //println(constraints)
+
+  def getRandomState = possibleValues(r.nextInt(possibleValues.size))
 
   /**
    * The collect function chooses a new random state and chooses it if it improves over the old state,
    * or, if it doesn't it still chooses it (for exploring purposes) with probability decreasing with time
    */
-  def collect(oldState: Double, mostRecentSignals: Iterable[Double]): Double = {
+  def collect(oldState: Int, mostRecentSignals: Iterable[Int]): Int = {
 
     time += 1
 
@@ -78,23 +108,21 @@ class DSANVertex(id: Any, csts: Iterable[Constraint], possibleValues: Array[Int]
 
     utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
     numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
-    numberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs) * b.hardInt)
+    //numberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs) * b.hardInt)
 
     // Select randomly a value and adopt it with probability (e(delta/t_i)) when delta<=0 (to explore)
     // or with probability 1 otherwise
-    val r = new Random()
 
     //Calculate utility and number of satisfied constraints for the new value
-    val newStateIndex = r.nextInt(possibleValues.size)
-    val newState = possibleValues(newStateIndex)
-    val newconfigs = neighbourConfigs + (id -> newState.toDouble)
+    val newState = getRandomState
+    val newconfigs = neighbourConfigs + (id -> newState)
     val newStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
     val newNumberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs))
-    val newNumberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs) * b.hardInt)
+    //val newNumberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs) * b.hardInt)
 
     // delta is the difference between the utility of the new randomly selected state and the utility of the old state. 
     // It is > 0 if the new state would lead to improvements
-    val delta = newStateUtility - utility
+    val delta: Double = newStateUtility - utility
 
     /**
      * The actual algorithm:
@@ -103,9 +131,11 @@ class DSANVertex(id: Any, csts: Iterable[Constraint], possibleValues: Array[Int]
      * t_i is the temperature which has to be a decreasing function of time. For this particular case we chose t_i = constTemp/(time*time)
      */
 
-    if (delta <= 0) { //The new state does not improve utility
-      val adopt = r.nextDouble()
-      if (adopt < math.exp(delta * time * time / constTemp)) { // We choose the new state (to explore) over the old state with probability (e(delta/t_i))
+    
+
+    if (delta <= 0) {//The new state does not improve utility
+      val adopt = r.nextDouble
+      if (adopt < explorationProbability(time, delta)) { // We choose the new state (to explore) over the old state with probability (e(delta/t_i))
 
         //        if (oldState == newState) //We send a dummy value to self to avoid blocking - doesn't work in the Async version
         //          graphEditor.sendSignalToVertex(0.0, id)
@@ -113,18 +143,18 @@ class DSANVertex(id: Any, csts: Iterable[Constraint], possibleValues: Array[Int]
         utility = newStateUtility
         numberSatisfied = newNumberSatisfied
 
-        //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + math.exp(delta * time * time / constTemp) + " ")
+        //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         //alarm.go //Seems unnecessary
 
-        return newState
+        newState
 
       } else { //With probability 1 - (e(delta/t_i)) we keep the old state which is better
 
         //graphEditor.sendSignalToVertex(0.0, id) //We send a dummy value to self to avoid blocking - doesn't work in the Async version
-        //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and NOT changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + math.exp(delta * time * time / constTemp) + " ")
+        //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and NOT changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         //alarm.go //Seems unnecessary
 
-        return oldState
+        oldState
       }
     } else { //The new state improves utility (delta>0), so we adopt the new state
       utility = newStateUtility
@@ -133,7 +163,7 @@ class DSANVertex(id: Any, csts: Iterable[Constraint], possibleValues: Array[Int]
       //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + oldState)
       ///alarm.go //Seems unnecessary
 
-      return newState
+      newState
     }
 
   } //end collect function
@@ -208,39 +238,39 @@ object DSAN extends App {
   val outA = new java.io.FileWriter("resultsA.txt")
   val outTimeA = new java.io.FileWriter("resultsTimeA.txt")
 
-  for (file <- myDirectory.listFiles) {
+  //  for (file <- myDirectory.listFiles) {
+  //
+  //    //Synchronous Execution
+  //    val graphGenS = new AdoptFileGraphGenerator(file.getAbsolutePath())
+  //    val graphS = graphGenS.constraintGraph
+  //
+  //    println("From client -  Sync: Graph built from file: " + file.getName())
+  //    outS.write(file.getName() + "S ")
+  //    outTimeS.write(file.getName() + "S ")
+  //    var startTime = System.nanoTime()
+  //    val terminationConditionS = new DSANGlobalTerminationCondition(outS, outTimeS, startTime)
+  //    val statsS = graphS.execute(ExecutionConfiguration().withExecutionMode(ExecutionMode.Synchronous).withGlobalTerminationCondition(terminationConditionS).withStepsLimit(1000))
+  //    outS.write(statsS.aggregatedWorkerStatistics.numberOfOutgoingEdges.toString + "\n")
+  //    outTimeS.write("\n")
+  //    println("\n" + statsS.executionStatistics.computationTime)
+  //    graphS.shutdown
+  //
+  //    //Asynchronous Execution
+  //    val graphGenA = new AdoptFileGraphGenerator(file.getAbsolutePath())
+  //    val graphA = graphGenA.constraintGraph
+  //
+  //    println("From client - Async: Graph built from file: " + file.getName())
+  //    outA.write(file.getName() + "A ")
+  //    outTimeA.write(file.getName() + "A ")
+  //    startTime = System.nanoTime()
+  //    val terminationConditionA = new DSANGlobalTerminationCondition(outA, outTimeA, startTime)
+  //    val statsA = graphA.execute(ExecutionConfiguration().withExecutionMode(ExecutionMode.OptimizedAsynchronous).withGlobalTerminationCondition(terminationConditionA).withTimeLimit(500))
+  //    outA.write(statsA.aggregatedWorkerStatistics.numberOfOutgoingEdges.toString + "\n")
+  //    outTimeA.write("\n")
+  //    println("\n" + statsA.executionStatistics.computationTime)
+  //    graphA.shutdown
 
-    //Synchronous Execution
-    val graphGenS = new AdoptFileGraphGenerator(file.getAbsolutePath())
-    val graphS = graphGenS.constraintGraph
-
-    println("From client -  Sync: Graph built from file: " + file.getName())
-    outS.write(file.getName() + "S ")
-    outTimeS.write(file.getName() + "S ")
-    var startTime = System.nanoTime()
-    val terminationConditionS = new DSANGlobalTerminationCondition(outS, outTimeS, startTime)
-    val statsS = graphS.execute(ExecutionConfiguration().withExecutionMode(ExecutionMode.Synchronous).withGlobalTerminationCondition(terminationConditionS).withStepsLimit(1000))
-    outS.write(statsS.aggregatedWorkerStatistics.numberOfOutgoingEdges.toString + "\n")
-    outTimeS.write("\n")
-    println("\n" + statsS.executionStatistics.computationTime)
-    graphS.shutdown
-
-    //Asynchronous Execution
-    val graphGenA = new AdoptFileGraphGenerator(file.getAbsolutePath())
-    val graphA = graphGenA.constraintGraph
-
-    println("From client - Async: Graph built from file: " + file.getName())
-    outA.write(file.getName() + "A ")
-    outTimeA.write(file.getName() + "A ")
-    startTime = System.nanoTime()
-    val terminationConditionA = new DSANGlobalTerminationCondition(outA, outTimeA, startTime)
-    val statsA = graphA.execute(ExecutionConfiguration().withExecutionMode(ExecutionMode.OptimizedAsynchronous).withGlobalTerminationCondition(terminationConditionA).withTimeLimit(500))
-    outA.write(statsA.aggregatedWorkerStatistics.numberOfOutgoingEdges.toString + "\n")
-    outTimeA.write("\n")
-    println("\n" + statsA.executionStatistics.computationTime)
-    graphA.shutdown
-
-  }
+  // }
 
   outS.close
   outTimeS.close

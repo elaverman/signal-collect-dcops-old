@@ -6,6 +6,8 @@ import com.signalcollect.graphproviders._
 import scala.io.Source
 import com.signalcollect.visualization.GraphVisualizer
 import com.signalcollect.visualization.ComputeGraphInspector
+import com.signalcollect.approx.flood.SimpleNoGoodConstraint
+import java.util.Random
 
 case class ConstraintGraphData(possibleValues: Map[Int, Array[Int]], csts: Seq[Constraint], ids: List[Int]) {
   //  val possibleValues: Map[Int, Array[Int]] = map from variable ids to their possible values
@@ -45,7 +47,7 @@ class AdoptFileGraphGenerator(fileName: String, colors: Int = 0) {
           case "AGENT" => getFromText(tls) //lose it
           case "VARIABLE" => {
             val variableId = splitTextLine(1).toInt
-            val variablePossibleValues: Array[Int] = (0 to (if (colors==0) splitTextLine(3).toInt-1 else colors-1)).toArray
+            val variablePossibleValues: Array[Int] = (0 to (if (colors == 0) splitTextLine(3).toInt - 1 else colors - 1)).toArray
             getFromText(tls).addPossibleValues(variableId, variablePossibleValues)
           }
           case "CONSTRAINT" => {
@@ -79,7 +81,9 @@ class AdoptFileGraphGenerator(fileName: String, colors: Int = 0) {
     val graph = new GraphBuilder[Any, Double].build
 
     for (id <- cgd.ids) {
-      graph.addVertex(new DSANVertex(id, cgd.csts.filter(s => s.variablesList().contains(id)).toArray: Array[Constraint], cgd.possibleValues(id)))
+      val r = new Random
+      throw new Exception("Code incomplete")
+ //       graph.addVertex(new DSANVertex(id, cgd.possibleValues(r.nextInt((cgd.possibleValues).size)), cgd.csts.filter(s => s.variablesList().contains(id)).toArray: Array[Constraint], cgd.possibleValues(id)))
     }
 
     for (cst <- cgd.csts) {

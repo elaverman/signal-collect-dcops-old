@@ -22,7 +22,7 @@ object Expression {
 }
 
 case class IntExpression(x: Int) extends Expression {
-  def evaluate(configuration: Map[Any, Double]): Double = x
+  def evaluate(configuration: Map[Any, Int]): Double = x
   def variablesList(): List[Any] = List()
 
   override def toString: String = {
@@ -32,9 +32,9 @@ case class IntExpression(x: Int) extends Expression {
 
 case class EqualsConstraint(lhs: Expression, rhs: Expression, utilitySatisfied: Double = 1, utilityNonSatisfied: Double = 0, hard: Boolean = false) extends Constraint {
 
-  def satisfies(configuration: Map[Any, Double]): Boolean = lhs.evaluate(configuration) == rhs.evaluate(configuration)
-  def satisfiesInt(configuration: Map[Any, Double]): Int = if (satisfies(configuration)) { return 1 } else { return 0 }
-  def utility(configuration: Map[Any, Double]): Double = if (satisfies(configuration)) utilitySatisfied else utilityNonSatisfied
+  def satisfies(configuration: Map[Any, Int]): Boolean = lhs.evaluate(configuration) == rhs.evaluate(configuration)
+  def satisfiesInt(configuration: Map[Any, Int]): Int = if (satisfies(configuration)) { return 1 } else { return 0 }
+  def utility(configuration: Map[Any, Int]): Double = if (satisfies(configuration)) utilitySatisfied else utilityNonSatisfied
 
   def variablesList(): List[Any] = {
     lhs.variablesList() ::: rhs.variablesList()
@@ -53,9 +53,9 @@ case class EqualsConstraint(lhs: Expression, rhs: Expression, utilitySatisfied: 
 
 case class LessEqualsConstraint(lhs: Expression, rhs: Expression, utilitySatisfied: Double = 1, utilityNonSatisfied: Double = 0, hard: Boolean = false) extends Constraint {
 
-  def satisfies(configuration: Map[Any, Double]): Boolean = lhs.evaluate(configuration) <= rhs.evaluate(configuration)
-  def satisfiesInt(configuration: Map[Any, Double]): Int = if (satisfies(configuration)) { return 1 } else { return 0 }
-  def utility(configuration: Map[Any, Double]): Double = if (satisfies(configuration)) utilitySatisfied else utilityNonSatisfied
+  def satisfies(configuration: Map[Any, Int]): Boolean = lhs.evaluate(configuration) <= rhs.evaluate(configuration)
+  def satisfiesInt(configuration: Map[Any, Int]): Int = if (satisfies(configuration)) { return 1 } else { return 0 }
+  def utility(configuration: Map[Any, Int]): Double = if (satisfies(configuration)) utilitySatisfied else utilityNonSatisfied
 
   def variablesList(): List[Any] = {
     lhs.variablesList() ::: rhs.variablesList()
@@ -74,19 +74,19 @@ case class LessEqualsConstraint(lhs: Expression, rhs: Expression, utilitySatisfi
 
 case class NotEqualsConstraint(lhs: Expression, rhs: Expression, utilitySatisfied: Double = 1, utilityNonSatisfied: Double = 0, hard: Boolean = false) extends Constraint {
 
-  def satisfies(configuration: Map[Any, Double]): Boolean = {
+  def satisfies(configuration: Map[Any, Int]): Boolean = {
     //println(this.toString() + " " + configuration)
     lhs.evaluate(configuration) != rhs.evaluate(configuration)
   }
 
-  def satisfiesInt(configuration: Map[Any, Double]): Int =
+  def satisfiesInt(configuration: Map[Any, Int]): Int =
     if (satisfies(configuration)) {
       return 1
     } else {
       return 0
     }
 
-  def utility(configuration: Map[Any, Double]): Double =
+  def utility(configuration: Map[Any, Int]): Double =
     if (satisfies(configuration))
       utilitySatisfied
     else
@@ -108,10 +108,10 @@ case class NotEqualsConstraint(lhs: Expression, rhs: Expression, utilitySatisfie
 }
 
 
-trait Constraint {
-  def satisfies(configuration: Map[Any, Double]): Boolean
-  def satisfiesInt(configuration: Map[Any, Double]): Int
-  def utility(configuration: Map[Any, Double]): Double
+trait Constraint { //TODO Do different version for discrete and continuous domains
+  def satisfies(configuration: Map[Any, Int]): Boolean    
+  def satisfiesInt(configuration: Map[Any, Int]): Int   
+  def utility(configuration: Map[Any, Int]): Double
 
   def variablesList(): List[Any]
   def hard: Boolean
@@ -123,7 +123,7 @@ trait Constraint {
 
 
 case class Multiplication(e1: Expression, e2: Expression) extends Expression {
-  def evaluate(configuration: Map[Any, Double]): Double = {
+  def evaluate(configuration: Map[Any, Int]): Double = {
     e1.evaluate(configuration) * e2.evaluate(configuration)
   }
 
@@ -137,7 +137,7 @@ case class Multiplication(e1: Expression, e2: Expression) extends Expression {
 }
 
 case class Addition(e1: Expression, e2: Expression) extends Expression {
-  def evaluate(configuration: Map[Any, Double]): Double = {
+  def evaluate(configuration: Map[Any, Int]): Double = {
     e1.evaluate(configuration) + e2.evaluate(configuration)
   }
   def variablesList(): List[Any] = {
@@ -150,7 +150,7 @@ case class Addition(e1: Expression, e2: Expression) extends Expression {
 }
 
 case class Substraction(e1: Expression, e2: Expression) extends Expression {
-  def evaluate(configuration: Map[Any, Double]): Double = {
+  def evaluate(configuration: Map[Any, Int]): Double = {
     e1.evaluate(configuration) - e2.evaluate(configuration)
   }
   def variablesList(): List[Any] = {
@@ -163,7 +163,7 @@ case class Substraction(e1: Expression, e2: Expression) extends Expression {
 }
 
 case class Division(e1: Expression, e2: Expression) extends Expression {
-  def evaluate(configuration: Map[Any, Double]): Double = {
+  def evaluate(configuration: Map[Any, Int]): Double = {
     e1.evaluate(configuration) / e2.evaluate(configuration)
   }
 
@@ -182,7 +182,7 @@ trait Expression {
   def -(other: Expression): Expression = Substraction(this, other)
   def /(other: Expression): Expression = Division(this, other)
 
-  def evaluate(configuration: Map[Any, Double]): Double
+  def evaluate(configuration: Map[Any, Int]): Double
   def variablesList(): List[Any]
 
   def ==(other: Expression): Constraint = EqualsConstraint(this, other)
@@ -192,7 +192,7 @@ trait Expression {
 }
 
 case class Variable(name: Any) extends Expression {
-  def evaluate(configuration: Map[Any, Double]): Double = {
+  def evaluate(configuration: Map[Any, Int]): Double = {
     //  println(name + " " + configuration)
     configuration(name)
   }

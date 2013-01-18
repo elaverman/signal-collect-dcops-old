@@ -55,9 +55,9 @@ import DSAVariant._
  *  @param constraints: the set of constraints in which it is involved
  *  @param possibleValues: which values can the state take
  */
-class DSAVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Array[Int], variant: DSAVariant) extends DataGraphVertex(id, 0.0) {
+class DSAVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Array[Int], variant: DSAVariant) extends DataGraphVertex(id, 0) {
 
-  type Signal = Double
+  type Signal = Int
   var oldState = possibleValues(0)
   var utility: Double = 0
   var numberSatisfied: Int = 0 //number of satisfied constraints
@@ -69,12 +69,12 @@ class DSAVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Arra
    * The collect function chooses a new random state and chooses it if it improves over the old state,
    * or, if it doesn't it still chooses it (for exploring purposes) with probability decreasing with time
    */
-  def collect(oldState: Double, mostRecentSignals: Iterable[Double]): Double = {
+  def collect(oldState: Int, mostRecentSignals: Iterable[Int]): Int = {
 
     val neighbourConfigs = mostRecentSignalMap.map(x => (x._1,x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
 
     //Calculate utility and number of satisfied constraints for the current value
-    val configs = neighbourConfigs + (id -> oldState.toDouble)
+    val configs = neighbourConfigs + (id -> oldState)
     utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
     // (constraints map (_.utility(configs)) sum) // use foldLeft instead
     numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
@@ -90,7 +90,7 @@ class DSAVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Arra
     for (newState <- possibleValues)
       if (newState != oldState) {
 
-        val newconfigs = neighbourConfigs + (id -> newState.toDouble)
+        val newconfigs = neighbourConfigs + (id -> newState)
         val newStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
         val newNumberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs))
         val newNumberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs) * b.hardInt)

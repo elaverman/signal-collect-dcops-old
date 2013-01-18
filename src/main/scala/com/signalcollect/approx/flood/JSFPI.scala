@@ -40,9 +40,9 @@ import com.signalcollect.interfaces.MessageBus
  *  @param constraints: the set of constraints in which it is involved
  *  @param possibleValues: which values can the state take
  */
-class JSFPIVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Array[Int]) extends DataGraphVertex(id, 0.0) {
+class JSFPIVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Array[Int]) extends DataGraphVertex(id, 0) {
 
-  type Signal = Double
+  type Signal = Int
   var inertia: Double = 0.5 //time counter used for calculating temperature
   var oldState = possibleValues(0)
   var weightedAvgUtilities: Array[Double] = Array.fill[Double](possibleValues.size)(0)
@@ -53,14 +53,14 @@ class JSFPIVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Ar
    * The collect function chooses a new random state and chooses it if it improves over the old state,
    * or, if it doesn't it still chooses it (for exploring purposes) with probability decreasing with time
    */
-  def collect(oldState: Double, mostRecentSignals: Iterable[Double]): Double = {
+  def collect(oldState: Int, mostRecentSignals: Iterable[Int]): Int = {
 
     //Update the weighted average utilities for each action 
     val neighbourConfigs = mostRecentSignalMap.map(x => (x._1,x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
 
     for (i <- 0 to (possibleValues.size - 1)) {
       state = possibleValues(i)
-      val possibleStatesConfigs = neighbourConfigs + (id -> state.toDouble)
+      val possibleStatesConfigs = neighbourConfigs + (id -> state)
       val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
         //(constraints map (_.utility(possibleStatesConfigs)) sum)
       weightedAvgUtilities(i) = fadingMemory * possibleStatesConfigsUtility + (1 - fadingMemory) * weightedAvgUtilities(i)
@@ -103,10 +103,10 @@ class JSFPIVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Ar
     //end Selection of the candidate State
 
     //Calculate utility and number of satisfied constraints for the candidate state
-    val candidateStateConfigs = neighbourConfigs + (id -> candidateState.toDouble)
+    val candidateStateConfigs = neighbourConfigs + (id -> candidateState)
 
     //Calculate utility and number of satisfied constraints for the old state
-    val configs = neighbourConfigs + (id -> oldState.toDouble)
+    val configs = neighbourConfigs + (id -> oldState)
     val utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
       //(constraints map (_.utility(oldStateConfigs)) sum)
 

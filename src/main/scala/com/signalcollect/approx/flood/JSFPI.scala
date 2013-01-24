@@ -28,7 +28,7 @@ import com.signalcollect._
 import com.signalcollect.configuration._
 import com.signalcollect.configuration.LoggingLevel._
 import scala.util._
-import scala.math
+import java.util.Random
 import com.signalcollect.interfaces.MessageBus
 
 /**
@@ -40,14 +40,41 @@ import com.signalcollect.interfaces.MessageBus
  *  @param constraints: the set of constraints in which it is involved
  *  @param possibleValues: which values can the state take
  */
-class JSFPIVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Array[Int]) extends DataGraphVertex(id, 0) {
+
+
+class JSFPIVertexBuilder(algorithmDescription: String, fadingMemory: Double = 0.03, inertia: Double = 0.5) extends ConstraintVertexBuilder {
+  def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
+    val r = new Random
+    val v = new JSFPIVertex(id, domain(r.nextInt(domain.size)), constraints, domain, fadingMemory, inertia)
+
+    for (ctr <- constraints) {
+      for (variable <- ctr.variablesList) {
+        if (variable != id) {
+          v.addEdge(new StateForwarderEdge(variable), null.asInstanceOf[GraphEditor[Any, Any]])
+        }
+      }
+    }
+
+    v
+  }
+
+  override def toString = "JSFPI - " + algorithmDescription
+}
+
+
+//(id: Any, initialState: Int, csts: Iterable[Constraint], possibleValues: Array[Int], explorationProbability: (Int, Double) => Double)
+
+class JSFPIVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibleValues: Array[Int], fadingMemory: Double, inertia: Double) extends DataGraphVertex(id, 0) {
 
   type Signal = Int
-  var inertia: Double = 0.5 //time counter used for calculating temperature
-  var oldState = possibleValues(0)
+ // var inertia: Double = 0.5 //time counter used for calculating temperature
   var weightedAvgUtilities: Array[Double] = Array.fill[Double](possibleValues.size)(0)
-  var numberSatisfied: Int = 0 //number of satisfied constraints
-  val fadingMemory: Double = 0.03 //constant rho for fading memory  - is 1 if we do not take into account memory and only current utility
+  var utility: Double = 0
+  val constraints: Iterable[Constraint] = csts
+  var canBeImproved: Boolean = false
+  var oldStateWeightedAvgUtility: Double = 0
+ // var numberSatisfied: Int = 0 //number of satisfied constraints
+//  val fadingMemory: Double = 0.03 //constant rho for fading memory  - is 1 if we do not take into account memory and only current utility
 
   /**
    * The collect function chooses a new random state and chooses it if it improves over the old state,
@@ -74,7 +101,7 @@ class JSFPIVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Ar
     var maxUtility = weightedAvgUtilities(0)
     var maximumsCount = 1 //how many states with the maximumUtility
 
-    for (i <- 1 to (possibleValues.size - 1)) {
+    for (i <- 0 to (possibleValues.size - 1)) {
       if (weightedAvgUtilities(i) > maxUtility) {
         candidateState = possibleValues(i)
         maxUtility = weightedAvgUtilities(i)
@@ -86,9 +113,17 @@ class JSFPIVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Ar
       }
     }
 
+    
+    var str: String = "vertex "+id+" WAU vector: "
+    for (i <- 0 to (possibleValues.size - 1)) 
+      str = str + weightedAvgUtilities(i).toString +" "
+      
+    println(str)
+    
     //if we have more than 1 states with the same maximum utility we have to select randomly from them
+    val r = new Random()
     if (maximumsCount != 1) {
-      var nThMaximum: Int = Random.nextInt(maximumsCount) + 1 //random between 1 and the number of maximum utility states
+      var nThMaximum: Int = r.nextInt(maximumsCount) + 1 //random between 1 and the number of maximum utility states
 
       for (i <- 0 to (possibleValues.size - 1)) {
         if (weightedAvgUtilities(i) == maxUtility) {
@@ -104,38 +139,50 @@ class JSFPIVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Ar
 
     //Calculate utility and number of satisfied constraints for the candidate state
     val candidateStateConfigs = neighbourConfigs + (id -> candidateState)
-
+    val candidateStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(candidateStateConfigs))
+    
     //Calculate utility and number of satisfied constraints for the old state
+    oldStateWeightedAvgUtility = weightedAvgUtilities(oldState) 
+    
     val configs = neighbourConfigs + (id -> oldState)
-    val utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
+    utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs)) //TODO: should use weightedAvg utilities!!!! 
       //(constraints map (_.utility(oldStateConfigs)) sum)
 
+    
+    canBeImproved = (maxUtility > oldStateWeightedAvgUtility)//||((maxUtility==utility)&&(maximumsCount != 1)) //only STRICT NE are absorbing!
+      
+    
     // With some inertia we keep the last state even if it's not the best. Else, we update to the best new state
-    val r = new Random()
+    
     val probability: Double = r.nextDouble()
 
     if ((probability > inertia) && (candidateState != oldState)) { // we adopt the new maximum state, else we do not change state
-      println("Vertex: " + id + "; changed to state: " + candidateState + " of new utility " + maxUtility + " instead of old state " + oldState + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
-      numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(candidateStateConfigs))
+      println("Vertex: " + id + "; changed to state: " + candidateState + " of new WAU/utility " + maxUtility + "/" + candidateStateUtility+" instead of old state " + oldState + " with WAU/utility " + oldStateWeightedAvgUtility + "/" + utility+"; prob = " + probability + " > inertia =  " + inertia)
+      //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(candidateStateConfigs))
         //constraints map (_.satisfiesInt(candidateStateConfigs)) sum;
+      canBeImproved = false
+      utility = candidateStateUtility
       return candidateState
     } else {
+      if (candidateState!=oldState)
       println("Vertex: " + id + "; NOT changed to state: " + candidateState + " of new utility " + maxUtility + " instead of old state " + oldState + " with utility " + utility + "; prob = " + probability + " < inertia =  " + inertia)
-      numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
+      //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
         //constraints map (_.satisfiesInt(oldStateConfigs)) sum;
       return oldState
     }
 
   } //end collect function
 
+  
+  //TODO: write functions for NE, global optimum
   override def scoreSignal: Double = {
     lastSignalState match {
-      case Some(oldState) =>
-        if ((oldState == state) && (numberSatisfied == constraints.size)) { //computation is allowed to stop only if state has not changed and the utility is maximized - TODO: utility maximized should be expressed differently
-          0
-        } else {
+      case Some(oldState) => //TODO: see if i would add that there are no other possibilities of moving into a same utility state
+//        if (/*(oldState == state) &&*/ (!canBeImproved || (utility == constraints.size))) { //computation is allowed to stop only if state has not changed and the utility is maximized - TODO: utility maximized should be expressed differently
+//          0                       //before it was numberSatisfied == constraints.size
+//        } else {
           1
-        }
+   //     }
       case other => 1
 
     }
@@ -174,8 +221,11 @@ object JSFPI extends App {
   constraints = (Variable(5) != Variable(6)) :: constraints
   constraints = (Variable(6) != Variable(2)) :: constraints
 
+  
+  val fm: Double = 0.03
+  val in: Double = 0.5
   for (i <- 1 to 6) {
-    graph.addVertex(new JSFPIVertex(i, constraints.filter(s => s.variablesList().contains(i)).toArray: Array[Constraint], Array(0, 1, 2)))
+    graph.addVertex(new JSFPIVertex(i, 0, constraints.filter(s => s.variablesList().contains(i)).toArray: Array[Constraint], Array(0, 1, 2), fm, in))
   }
 
   for (ctr <- constraints) {

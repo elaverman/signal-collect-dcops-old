@@ -35,6 +35,7 @@ import com.signalcollect.dcopgraphproviders.AdoptFileGraphGenerator
 import com.signalcollect.interfaces.AggregationOperation
 import java.io.File
 import java.util.Random
+import collection.JavaConversions._
 /**
  * Represents an Agent
  *
@@ -67,7 +68,22 @@ class DSANVertexBuilder(algorithmDescription: String, explorationProbability: (I
   override def toString = "DSAN - " + algorithmDescription
 }
 
-class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibleValues: Array[Int], explorationProbability: (Int, Double) => Double) extends DataGraphVertex(id, initialState) {
+class GoogleDSANVertexBuilder(algorithmDescription: String, explorationProbability: (Int, Double) => Double) extends ConstraintVertexBuilder {
+  def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
+    val r = new Random
+    val v = new DSANVertex(id, domain(r.nextInt(domain.size)), constraints, domain, explorationProbability)
+    v
+  }
+
+  override def toString = "Google DSAN - " + algorithmDescription
+}
+
+
+
+
+//TODO Converged not when global optimum is obtained but when temperature reaches 0 and i'm not in a NE
+
+class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibleValues: Array[Int], explorationProbability: (Int, Double) => Double) extends DataGraphVertex(id, initialState) {
 
   type Signal = Int
   val r = new Random
@@ -76,11 +92,13 @@ class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibl
   var time: Int = 0 //(System.nanoTime() - startTime)/    //time counter used for calculating temperature
   //var oldState = possibleValues(0)
 
-  val constraints: Iterable[Constraint] = csts
+  var constraints: Iterable[Constraint] = csts
+  val maxDelta: Double = (-1 * constraints.size).toDouble
   var utility: Double = 0
-  var numberHard: Int = constraints.foldLeft(0)((a, b) => a + b.hardInt) //number of hard constraints
-  var numberSatisfied: Int = 0 //number of satisfied constraints
-  var numberSatisfiedHard: Int = 0 //number of satisfied hard constraints
+  var existsBetterStateUtility = false
+  //var numberHard: Int = constraints.foldLeft(0)((a, b) => a + b.hardInt) //number of hard constraints
+  //var numberSatisfied: Int = 0 //number of satisfied constraints
+  //var numberSatisfiedHard: Int = 0 //number of satisfied hard constraints
   //val constTemp: Double = 100 //constant for calculating temperature
 
   val alarm: Timer = new Timer(100) //Seems unnecessary
@@ -107,7 +125,7 @@ class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibl
     //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
 
     utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
-    numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
+    //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
     //numberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs) * b.hardInt)
 
     // Select randomly a value and adopt it with probability (e(delta/t_i)) when delta<=0 (to explore)
@@ -117,8 +135,27 @@ class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibl
     val newState = getRandomState
     val newconfigs = neighbourConfigs + (id -> newState)
     val newStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
-    val newNumberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs))
+    //val newNumberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs))
     //val newNumberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs) * b.hardInt)
+
+    //for convergence detection we see if there is any other state that could improve utility.
+
+    var existsBetterThanOldStateUtility = false
+    var existsBetterThanNewStateUtility = false
+    var i: Int = 0
+    while (!(existsBetterThanOldStateUtility && existsBetterThanNewStateUtility) && (i < possibleValues.size)) {
+      val candidateState = possibleValues(i)
+      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
+      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+
+      if ((candidateState != oldState) && (possibleStatesConfigsUtility >= utility))
+        existsBetterThanOldStateUtility = true
+
+      if ((candidateState != newState) && (possibleStatesConfigsUtility >= newStateUtility))
+        existsBetterThanNewStateUtility = true
+
+      i = i + 1
+    }
 
     // delta is the difference between the utility of the new randomly selected state and the utility of the old state. 
     // It is > 0 if the new state would lead to improvements
@@ -131,9 +168,7 @@ class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibl
      * t_i is the temperature which has to be a decreasing function of time. For this particular case we chose t_i = constTemp/(time*time)
      */
 
-    
-
-    if (delta <= 0) {//The new state does not improve utility
+    if (delta <= 0) { //The new state does not improve utility
       val adopt = r.nextDouble
       if (adopt < explorationProbability(time, delta)) { // We choose the new state (to explore) over the old state with probability (e(delta/t_i))
 
@@ -141,7 +176,8 @@ class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibl
         //          graphEditor.sendSignalToVertex(0.0, id)
 
         utility = newStateUtility
-        numberSatisfied = newNumberSatisfied
+        existsBetterStateUtility = existsBetterThanNewStateUtility
+        //     numberSatisfied = newNumberSatisfied
 
         //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         //alarm.go //Seems unnecessary
@@ -153,16 +189,16 @@ class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibl
         //graphEditor.sendSignalToVertex(0.0, id) //We send a dummy value to self to avoid blocking - doesn't work in the Async version
         //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and NOT changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         //alarm.go //Seems unnecessary
-
+        existsBetterStateUtility = existsBetterThanOldStateUtility
         oldState
       }
     } else { //The new state improves utility (delta>0), so we adopt the new state
       utility = newStateUtility
-      numberSatisfied = newNumberSatisfied
+      //    numberSatisfied = newNumberSatisfied
 
       //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + oldState)
       ///alarm.go //Seems unnecessary
-
+      existsBetterStateUtility = existsBetterThanNewStateUtility
       newState
     }
 
@@ -171,7 +207,8 @@ class DSANVertex(id: Any, initialState: Int, csts: Iterable[Constraint], possibl
   override def scoreSignal: Double = {
     lastSignalState match {
       case Some(oldState) =>
-        if ((oldState == state) && (numberSatisfied == constraints.size)) { //computation is allowed to stop only if state has not changed and the utility is maximized
+        if ((oldState == state) && (((explorationProbability(time, maxDelta) < 0.000001) && (!existsBetterStateUtility)) || (utility == constraints.size))) { //computation is allowed to stop only if state has not changed and the utility is maximized numberSatisfied instead of utility
+          println(explorationProbability(time, maxDelta))
           0
         } else {
           1
@@ -205,10 +242,29 @@ class GlobalUtility extends AggregationOperation[(Int, Double)] {
   val neutralElement = (0, 0.0)
   def extract(v: Vertex[_, _]): (Int, Double) = v match {
     case vertex: DSANVertex => (vertex.constraints.size, vertex.utility)
+    case vertex: JSFPIVertex => (vertex.constraints.size, vertex.utility)
     case other => neutralElement
   }
   def reduce(elements: Stream[(Int, Double)]) = elements.foldLeft(neutralElement)(aggregate)
   def aggregate(a: (Int, Double), b: (Int, Double)): (Int, Double) = (a._1 + b._1, a._2 + b._2)
+}
+
+class AddConstraintsToVertex extends AggregationOperation[Unit] {
+
+  def extract(v: Vertex[_, _]) = v match {
+    case vertex: DSANVertex => {
+      val targetIds = vertex.outgoingEdges.keys
+      var constraints: List[SimpleDiffConstraint] = List()
+      for (targetId <- targetIds) {
+        constraints = SimpleDiffConstraint(List(vertex.id, targetId.asInstanceOf[Int])) :: constraints
+
+      }
+      vertex.constraints = constraints
+    }
+    case vertex: JSFPIVertex => Unit
+  }
+  def reduce(elements: Stream[Unit]) = Unit
+
 }
 
 class DSANGlobalTerminationCondition(

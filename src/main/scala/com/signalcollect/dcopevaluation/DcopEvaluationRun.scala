@@ -97,7 +97,7 @@ class DcopEvaluationRun(
     stats
   }
 
-  override def postExecute: List[(String, String)] = {
+  override def postExecute(currentStats: Map[String, String]): List[(String, String)] = {
     val pseudoAggregate = graph.aggregate(new GlobalUtility)
     val nashEquilibrium = graph.aggregate(new NashEquilibrium)
 

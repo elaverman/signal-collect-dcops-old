@@ -154,7 +154,7 @@ class DSANVertex(
    * The collect function chooses a new random state and chooses it if it improves over the old state,
    * or, if it doesn't it still chooses it (for exploring purposes) with probability decreasing with time
    */
-  def collect(oldState: Int, mostRecentSignals: Iterable[Int]): Int = {
+  def collect: Int = {
 
     time += 1
 
@@ -167,7 +167,7 @@ class DSANVertex(
 //    val configs = neighbourConfigs + (id -> oldState)
 //    //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
 
-    utility =  computeUtility(oldState)// constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
+    utility =  computeUtility(state)// constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
     //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
     //numberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs) * b.hardInt)
 
@@ -205,7 +205,7 @@ class DSANVertex(
         existsBetterStateUtility = computeIfBetterStatesExist(newState, newStateUtility)
         //     numberSatisfied = newNumberSatisfied
 
-        println("Vertex: " + id + " utility " + utility + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
+        println("Vertex: " + id + " utility " + utility + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + state + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         //alarm.go //Seems unnecessary
 
         newState
@@ -215,14 +215,14 @@ class DSANVertex(
         //graphEditor.sendSignalToVertex(0.0, id) //We send a dummy value to self to avoid blocking - doesn't work in the Async version
         //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and NOT changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         //alarm.go //Seems unnecessary
-        existsBetterStateUtility = computeIfBetterStatesExist(oldState, utility)
-        oldState
+        existsBetterStateUtility = computeIfBetterStatesExist(state, utility)
+        state
       }
     } else { //The new state improves utility (delta>0), so we adopt the new state
       utility = newStateUtility
       //    numberSatisfied = newNumberSatisfied
 
-      println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + oldState)
+      println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + state)
       ///alarm.go //Seems unnecessary
       existsBetterStateUtility = computeIfBetterStatesExist(newState, newStateUtility)
       newState

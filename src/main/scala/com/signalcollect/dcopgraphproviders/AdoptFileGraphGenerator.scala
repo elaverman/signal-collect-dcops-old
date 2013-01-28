@@ -4,8 +4,6 @@ import com.signalcollect._
 import com.signalcollect.approx.flood._
 import com.signalcollect.graphproviders._
 import scala.io.Source
-import com.signalcollect.visualization.GraphVisualizer
-import com.signalcollect.visualization.ComputeGraphInspector
 import com.signalcollect.approx.flood.SimpleNoGoodConstraint
 import java.util.Random
 
@@ -106,10 +104,10 @@ class AdoptFileGraphGenerator(fileName: String, colors: Int = 0) {
   override def toString = constraintGraphData.toString
 }
 
-object AdoptFileGenerator extends App {
-  val outGraph = new AdoptFileGraphGenerator("data-sets/problems/Problem-GraphColor-8_3_2_0.4_r0")
-  print(outGraph)
-  outGraph.displayConstraintGraph
-  val visualizer = new GraphVisualizer(new ComputeGraphInspector(outGraph.constraintGraph)).setVisible(true)
-
-}
+//object AdoptFileGenerator extends App {
+//  val outGraph = new AdoptFileGraphGenerator("data-sets/problems/Problem-GraphColor-8_3_2_0.4_r0")
+//  print(outGraph)
+//  outGraph.displayConstraintGraph
+//  val visualizer = new GraphVisualizer(new ComputeGraphInspector(outGraph.constraintGraph)).setVisible(true)
+//
+//}

@@ -113,15 +113,15 @@ class JSFPIVertex(
    * The collect function chooses a new random state and chooses it if it improves over the old state,
    * or, if it doesn't it still chooses it (for exploring purposes) with probability decreasing with time
    */
-  def collect(oldState: Int, mostRecentSignals: Iterable[Int]): Int = {
+  def collect: Int = {
 
     //Update the weighted average utilities for each action 
     //val neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
-
+    var currentEvalState = 0
     for (i <- 0 to (possibleValues.size - 1)) {
-      state = possibleValues(i)
+      currentEvalState = possibleValues(i)
       //val possibleStatesConfigs = neighbourConfigs + (id -> state)
-      val possibleStatesConfigsUtility = computeUtility(state)//constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+      val possibleStatesConfigsUtility = computeUtility(currentEvalState)//constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
       //(constraints map (_.utility(possibleStatesConfigs)) sum)
       weightedAvgUtilities(i) = fadingMemory * possibleStatesConfigsUtility + (1 - fadingMemory) * weightedAvgUtilities(i)
     }
@@ -174,9 +174,9 @@ class JSFPIVertex(
     val candidateStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(candidateStateConfigs))
 
     //Calculate utility and number of satisfied constraints for the old state
-    oldStateWeightedAvgUtility = weightedAvgUtilities(oldState)
+    oldStateWeightedAvgUtility = weightedAvgUtilities(state)
 
-    val configs = neighbourConfigs + (id -> oldState)
+    val configs = neighbourConfigs + (id -> state)
     utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs)) //TODO: should use weightedAvg utilities!!!! 
     //(constraints map (_.utility(oldStateConfigs)) sum)
 
@@ -186,19 +186,19 @@ class JSFPIVertex(
 
     val probability: Double = r.nextDouble()
 
-    if ((probability > inertia) && (candidateState != oldState)) { // we adopt the new maximum state, else we do not change state
-      println("Vertex: " + id + "; changed to state: " + candidateState + " of new WAU/utility " + maxUtility + "/" + candidateStateUtility + " instead of old state " + oldState + " with WAU/utility " + oldStateWeightedAvgUtility + "/" + utility + "; prob = " + probability + " > inertia =  " + inertia)
+    if ((probability > inertia) && (candidateState != state)) { // we adopt the new maximum state, else we do not change state
+      println("Vertex: " + id + "; changed to state: " + candidateState + " of new WAU/utility " + maxUtility + "/" + candidateStateUtility + " instead of old state " + state + " with WAU/utility " + oldStateWeightedAvgUtility + "/" + utility + "; prob = " + probability + " > inertia =  " + inertia)
       //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(candidateStateConfigs))
       //constraints map (_.satisfiesInt(candidateStateConfigs)) sum;
       canBeImproved = false
       utility = candidateStateUtility
       return candidateState
     } else {
-      if (candidateState != oldState)
-        println("Vertex: " + id + "; NOT changed to state: " + candidateState + " of new utility " + maxUtility + " instead of old state " + oldState + " with utility " + utility + "; prob = " + probability + " < inertia =  " + inertia)
+      if (candidateState != state)
+        println("Vertex: " + id + "; NOT changed to state: " + candidateState + " of new utility " + maxUtility + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " < inertia =  " + inertia)
       //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
       //constraints map (_.satisfiesInt(oldStateConfigs)) sum;
-      return oldState
+      return state
     }
 
   } //end collect function

@@ -19,3 +19,17 @@ target/streams/$global/compilers/$global/out
 target/streams/compile/compile/$global/out
 
 target/streams/compile/compile/$global/out
+
+project/target/streams/$global/compilers/$global/out
+
+project/target/streams/$global/compilers/$global/out
+
+.classpath
+
+project/target/streams/$global/compilers/$global/out
+
+project/target/streams/$global/ivy-configuration/$global/out
+
+project/target/streams/$global/update/$global/out
+
+project/target/streams/compile/compile/$global/out

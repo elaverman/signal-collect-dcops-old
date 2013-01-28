@@ -80,15 +80,15 @@ class JSFPIVertex(
   var oldStateWeightedAvgUtility: Double = 0
   // var numberSatisfied: Int = 0 //number of satisfied constraints
   //  val fadingMemory: Double = 0.03 //constant rho for fading memory  - is 1 if we do not take into account memory and only current utility
-  var neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
+  var neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
 
   def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double): Boolean = {
     var existsBetterThanCurrentStateUtility: Boolean = false
     var i: Int = 0
     while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
       val candidateState = possibleValues(i)
-      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
-      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+      val possibleStatesConfig = neighbourConfig + (id -> candidateState)
+      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfig))
       if ((candidateState != currentState) && (possibleStatesConfigsUtility >= currentStateUtility))
         existsBetterThanCurrentStateUtility = true
       i = i + 1
@@ -99,13 +99,13 @@ class JSFPIVertex(
   def existsBetterStateUtility: Boolean = computeIfBetterStatesExist(state, computeUtility(state))
 
   def computeUtility(ownConfig: Int): Double = {
-    neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
+    neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
 
     //Calculate utility and number of satisfied constraints for the current value
-    val configs = neighbourConfigs + (id -> ownConfig)
+    val config = neighbourConfig + (id -> ownConfig)
     //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
 
-    constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
+    constraints.foldLeft(0.0)((a, b) => a + b.utility(config))
 
   }
 
@@ -170,13 +170,13 @@ class JSFPIVertex(
     //end Selection of the candidate State
 
     //Calculate utility and number of satisfied constraints for the candidate state
-    val candidateStateConfigs = neighbourConfigs + (id -> candidateState)
+    val candidateStateConfigs = neighbourConfig + (id -> candidateState)
     val candidateStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(candidateStateConfigs))
 
     //Calculate utility and number of satisfied constraints for the old state
     oldStateWeightedAvgUtility = weightedAvgUtilities(state)
 
-    val configs = neighbourConfigs + (id -> state)
+    val configs = neighbourConfig + (id -> state)
     utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs)) //TODO: should use weightedAvg utilities!!!! 
     //(constraints map (_.utility(oldStateConfigs)) sum)
 

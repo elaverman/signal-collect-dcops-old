@@ -65,7 +65,7 @@ class DSANVertexBuilder(algorithmDescription: String, explorationProbability: (I
     v
   }
 
-  override def toString = "DSAN - " + algorithmDescription
+  override def toString = "DSAN - "+algorithmDescription
 }
 
 class GoogleDSANVertexBuilder(algorithmDescription: String, explorationProbability: (Int, Double) => Double) extends ConstraintVertexBuilder {
@@ -75,7 +75,7 @@ class GoogleDSANVertexBuilder(algorithmDescription: String, explorationProbabili
     v
   }
 
-  override def toString = "Google DSAN - " + algorithmDescription
+  override def toString = "Google DSAN - "+algorithmDescription
 }
 
 //TODO Converged not when global optimum is obtained but when temperature reaches 0 and i'm not in a NE
@@ -86,36 +86,26 @@ class DSANVertex(
   var constraints: Iterable[Constraint],
   val possibleValues: Array[Int],
   explorationProbability: (Int, Double) => Double)
-  extends DataGraphVertex(id, initialState)
-  with ApproxBestResponseVertex[Int, Int] {
+    extends DataGraphVertex(id, initialState)
+    with ApproxBestResponseVertex[Int, Int] {
 
   type Signal = Int
   val r = new Random
 
-  val startTime = System.nanoTime()
-  var time: Int = 0 //(System.nanoTime() - startTime)/    //time counter used for calculating temperature
-  //var oldState = possibleValues(0)
+  var time: Int = 0
 
-  var neighbourConfigs: Map[Any, Int] = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
+  var neighbourConfig: Map[Any, Int] = _
   val maxDelta: Double = (-1 * constraints.size).toDouble
   var utility: Double = 0
   var existsBetterStateUtility = false
-  //var numberHard: Int = constraints.foldLeft(0)((a, b) => a + b.hardInt) //number of hard constraints
-  //var numberSatisfied: Int = 0 //number of satisfied constraints
-  //var numberSatisfiedHard: Int = 0 //number of satisfied hard constraints
-  //val constTemp: Double = 100 //constant for calculating temperature
-
-  //val alarm: Timer = new Timer(100) //Seems unnecessary
-
-  //println(constraints)
 
   def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double): Boolean = {
     var existsBetterThanCurrentStateUtility: Boolean = false
     var i: Int = 0
     while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
       val candidateState = possibleValues(i)
-      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
-      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+      val possibleStatesConfig = neighbourConfig + (id -> candidateState)
+      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfig))
       if ((candidateState != currentState) && (possibleStatesConfigsUtility > currentStateUtility)) // strict NEEE when >= TODO change back to >=
         existsBetterThanCurrentStateUtility = true
       i = i + 1
@@ -124,66 +114,30 @@ class DSANVertex(
   }
 
   def computeUtility(ownConfig: Int): Double = {
-    neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
-
     //Calculate utility and number of satisfied constraints for the current value
-    val configs = neighbourConfigs + (id -> ownConfig)
-    //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
-
-    constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
-
+    val config = neighbourConfig + (id -> ownConfig)
+    constraints.foldLeft(0.0)((a, b) => a + b.utility(config))
   }
 
   def getRandomState = possibleValues(r.nextInt(possibleValues.size))
 
-  //  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double, neighbourConfigs: Map[Any, Int]): Boolean = {
-  //    var existsBetterThanCurrentStateUtility = false
-  //    var i: Int = 0
-  //    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
-  //      val candidateState = possibleValues(i)
-  //      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
-  //      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
-  //      if ((candidateState != currentState) && (possibleStatesConfigsUtility >= currentStateUtility))
-  //        existsBetterThanCurrentStateUtility = true
-  //      i = i + 1
-  //    }
-  //    existsBetterThanCurrentStateUtility
-  //  }
-
   /**
    * The collect function chooses a new random state and chooses it if it improves over the old state,
    * or, if it doesn't it still chooses it (for exploring purposes) with probability decreasing with time
+   *
+   * Selects randomly a value and adopt it with probability (e(delta/t_i)) when delta<=0 (to explore)
+   * or with probability 1 otherwise.
    */
   def collect: Int = {
-
+    neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
     time += 1
-
-    // while (!alarm.stopped) //Seems unnecessary
-    //{}
-
-//    val neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
-//
-//    //Calculate utility and number of satisfied constraints for the current value
-//    val configs = neighbourConfigs + (id -> oldState)
-//    //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
-
-    utility =  computeUtility(state)// constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
-    //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
-    //numberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs) * b.hardInt)
-
-    // Select randomly a value and adopt it with probability (e(delta/t_i)) when delta<=0 (to explore)
-    // or with probability 1 otherwise
+    utility = computeUtility(state) // constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
 
     //Calculate utility and number of satisfied constraints for the new value
     val newState = getRandomState
-//    val newconfigs = neighbourConfigs + (id -> newState)
-    val newStateUtility = computeUtility(newState)//constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
-    //val newNumberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs))
-    //val newNumberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs) * b.hardInt)
+    val newStateUtility = computeUtility(newState) //constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
 
-    //for convergence detection we see if there is any other state that could improve utility.
-
-    // delta is the difference between the utility of the new randomly selected state and the utility of the old state. 
+    // Delta is the difference between the utility of the new randomly selected state and the utility of the old state. 
     // It is > 0 if the new state would lead to improvements
     val delta: Double = newStateUtility - utility
 
@@ -196,73 +150,93 @@ class DSANVertex(
 
     if (delta <= 0) { //The new state does not improve utility
       val adopt = r.nextDouble
-      if (adopt < explorationProbability(time, delta)) { // We choose the new state (to explore) over the old state with probability (e(delta/t_i))
-
-        //        if (oldState == newState) //We send a dummy value to self to avoid blocking - doesn't work in the Async version
-        //          graphEditor.sendSignalToVertex(0.0, id)
-
+      if (adopt < explorationProbability(time, delta)) {
+        // We choose the new state (to explore) over the old state with probability (e(delta/t_i))
         utility = newStateUtility
         existsBetterStateUtility = computeIfBetterStatesExist(newState, newStateUtility)
-        //     numberSatisfied = newNumberSatisfied
-
-        println("Vertex: " + id + " utility " + utility + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + state + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
-        //alarm.go //Seems unnecessary
-
+        println("Vertex: "+id+" utility "+utility+" at time "+time+"; Case DELTA="+delta+"<= 0 and changed to state: "+newState+" instead of "+state+" with Adoption of new state prob ="+explorationProbability(time, delta)+" ")
         newState
-
-      } else { //With probability 1 - (e(delta/t_i)) we keep the old state which is better
-
-        //graphEditor.sendSignalToVertex(0.0, id) //We send a dummy value to self to avoid blocking - doesn't work in the Async version
-        //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and NOT changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
-        //alarm.go //Seems unnecessary
+      } else {
+        //With probability 1 - (e(delta/t_i)) we keep the old state which is better
         existsBetterStateUtility = computeIfBetterStatesExist(state, utility)
         state
       }
-    } else { //The new state improves utility (delta>0), so we adopt the new state
+    } else {
+      //The new state improves utility (delta>0), so we adopt the new state
       utility = newStateUtility
-      //    numberSatisfied = newNumberSatisfied
-
-      println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + state)
-      ///alarm.go //Seems unnecessary
+      println("Vertex: "+id+" at time "+time+"; Case DELTA="+delta+"> 0 and changed to state: "+newState+" instead of "+state)
       existsBetterStateUtility = computeIfBetterStatesExist(newState, newStateUtility)
       newState
     }
+  }
 
-  } //end collect function
-
-  override def scoreSignal: Double = {
+  def isStateUnchanged = {
     lastSignalState match {
-      case Some(oldState) =>
-        if ((oldState == state) && (((explorationProbability(time, maxDelta) < 0.000001) && (!existsBetterStateUtility)) || (utility == constraints.size))) { //computation is allowed to stop only if state has not changed and the utility is maximized numberSatisfied instead of utility
-        //  println("Vertex: " + id + " at time " + time + " EP"+ explorationProbability(time, maxDelta)+ " EBSU "+existsBetterStateUtility+" u "+utility+ " csz " +constraints.size)
-     		
+      case Some(oldState) => state == oldState
+      case None           => false
+    }
+  }
+
+  def isFrozen = explorationProbability(time, maxDelta) < 0.000001
+
+  def areAllLocalConstraintsSatisfied = utility == constraints.size
+
+  /**
+   * When should it stop signaling?
+   * (When the temperature reaches 0 (almost) = no exploration and
+   * there are no better states to which it can go into.)
+   * OR
+   * (when it has satisfied all the local constraints)
+   */
+  override def scoreSignal: Double = {
+    if (isStateUnchanged) {
+      if (isFrozen) {
+        if (existsBetterStateUtility) {
+          // Things could be better, let's do it.
+          1
+        } else {
+          // No better state available and we are frozen. Sad, but we give up.
+          0
+        }
+      } else {
+        if (areAllLocalConstraintsSatisfied) {
+          // This vertex is happy, no need to signal.
           0
         } else {
-          println("Vertex: " + id + " at time " + time + " EP"+ explorationProbability(time, maxDelta)+ " EBSU "+existsBetterStateUtility+" u "+utility+ " csz " +constraints.size)
+          // Things could still be better, let's signal.
+          1
+        }
+      }
+    } else {
+      // State has changed, we always signal.
+      1
+    }
+
+    lastSignalState match {
+      case Some(oldState) =>
+        if ((oldState == state) &&
+          (((explorationProbability(time, maxDelta) < 0.000001)
+            && (!existsBetterStateUtility))
+            || (utility == constraints.size))) {
+          //computation is allowed to stop only if state has not changed and the utility is maximized numberSatisfied instead of utility
+          0
+        } else {
+          println("Vertex: "+id+" at time "+time+" EP"+explorationProbability(time, maxDelta)+" EBSU "+existsBetterStateUtility+" u "+utility+" csz "+constraints.size)
           1
         }
       case other => 1
-
     }
 
-  } //end scoreSignal
+  }
 
-  //  override def scoreCollect(signals: Iterable[SignalMessage[_, _, _]]): Double = { //Modifying scoreCollect to include the alarm leads to problems in termination detection, even when modifying scoreSignal to be 0 only when alarm.stopped == true 
-  // //   if (alarm.stopped == true)
-  //      signals.size
-  // //   else
-  //  //    0.0
-  //  
-  //  } //end collectScore
-
-} //end DSANVertex class
+}
 
 class GlobalUtility extends AggregationOperation[(Int, Double)] {
   val neutralElement = (0, 0.0)
   def extract(v: Vertex[_, _]): (Int, Double) = v match {
-    case vertex: DSANVertex => (vertex.constraints.size, vertex.utility)
+    case vertex: DSANVertex  => (vertex.constraints.size, vertex.utility)
     case vertex: JSFPIVertex => (vertex.constraints.size, vertex.utility)
-    case other => neutralElement
+    case other               => neutralElement
   }
   def reduce(elements: Stream[(Int, Double)]) = elements.foldLeft(neutralElement)(aggregate)
   def aggregate(a: (Int, Double), b: (Int, Double)): (Int, Double) = (a._1 + b._1, a._2 + b._2)
@@ -282,17 +256,17 @@ class NashEquilibrium extends AggregationOperation[Boolean] {
 }
 
 class DSANGlobalTerminationCondition(
-  f: java.io.FileWriter,
-  g: java.io.FileWriter,
-  startTime: Long,
-  aggregationOperation: AggregationOperation[(Int, Double)] = new GlobalUtility,
-  aggregationInterval: Long = 5l) extends GlobalTerminationCondition[(Int, Double)](aggregationOperation, aggregationInterval) {
+    f: java.io.FileWriter,
+    g: java.io.FileWriter,
+    startTime: Long,
+    aggregationOperation: AggregationOperation[(Int, Double)] = new GlobalUtility,
+    aggregationInterval: Long = 5l) extends GlobalTerminationCondition[(Int, Double)](aggregationOperation, aggregationInterval) {
   def shouldTerminate(aggregate: (Int, Double)): Boolean = {
     if (aggregate._1 - aggregate._2 < 0.001) true
     else {
-      f.write(aggregate._1 - aggregate._2 + " ")
-      g.write((System.nanoTime() - startTime).toString + " ")
-      print(aggregate._1 - aggregate._2 + " " + (System.nanoTime() - startTime).toString + "; ")
+      f.write(aggregate._1 - aggregate._2+" ")
+      g.write((System.nanoTime() - startTime).toString+" ")
+      print(aggregate._1 - aggregate._2+" "+(System.nanoTime() - startTime).toString+"; ")
 
       false
     }

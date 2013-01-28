@@ -7,7 +7,7 @@ import com.signalcollect._
 
 trait ApproxBestResponseVertex[Id, Int] extends DataGraphVertex[Id, Int] {
 
-  def neighbourConfigs: Map[Any, Int]
+  def neighbourConfig: Map[Any, Int]
   
   def constraints: Iterable[Constraint]
 

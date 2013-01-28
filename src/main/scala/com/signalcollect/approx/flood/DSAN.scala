@@ -119,39 +119,14 @@ class DSANVertex(
     constraints.foldLeft(0.0)((a, b) => a + b.utility(config))
   }
 
-  def computeMaxUtilityState: Int = {
-    var candidateState = possibleValues(0)
-    var maxUtility = computeUtility(candidateState)
-    var maximumsCount = 1 //how many states with the maximumUtility
-
-    for (i <- 1 to (possibleValues.size - 1)) {
-      val iUtility = computeUtility(i)
-      if (iUtility > maxUtility) {
-        candidateState = possibleValues(i)
-        maxUtility = computeUtility(candidateState)
-        maximumsCount = 1
-      } else {
-        if (iUtility == maxUtility) {
-          maximumsCount += 1
-        }
-      }
-    }
-
-    if (maximumsCount != 1) {
-      val r = new Random()
-      var nThMaximum: Int = r.nextInt(maximumsCount)
-      for (i <- 0 to (possibleValues.size - 1)) {
-        if (computeUtility(i) == maxUtility) {
-          if (nThMaximum == 0) {
-            candidateState = possibleValues(i)
-          } else {
-            nThMaximum -= 1
-          }
-        }
-      }
-    }
-    candidateState
-  }
+ def computeMaxUtilityState: Int = {
+    val utilities = possibleValues map (value => (value, computeUtility(value)))
+    val maxUtility = utilities map (_._2) max
+    val maxUtilityStates = utilities filter (_._2 == maxUtility)
+    val r = new Random
+    val resultPos = r.nextInt(maxUtilityStates.size)
+    maxUtilityStates(resultPos)._1
+  }
 
   def getRandomState = possibleValues(r.nextInt(possibleValues.size))
 
@@ -168,8 +143,18 @@ class DSANVertex(
     utility = computeUtility(state) // constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
 
     //Calculate utility and number of satisfied constraints for the new value
-    
-    val newState = if (isFrozen) computeMaxUtilityState else getRandomState
+
+    if (isFrozen) {
+      val maxUtil = computeMaxUtilityState
+      if (computeUtility(maxUtil) > utility) {
+        utility = computeUtility(maxUtil)
+        existsBetterStateUtility = false
+        println("Vertex: " + id + " utility " + utility + " at time " + time )
+        return maxUtil
+      }
+    }
+
+    val newState = getRandomState
     val newStateUtility = computeUtility(newState) //constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
 
     // Delta is the difference between the utility of the new randomly selected state and the utility of the old state. 
@@ -226,8 +211,8 @@ class DSANVertex(
   override def scoreSignal: Double = {
     if (isStateUnchanged) {
       if (isFrozen) {
-          // No better state available and we are frozen. Sad, but we give up.
-          0
+        // No better state available and we are frozen. Sad, but we give up.
+        0
       } else {
         if (areAllLocalConstraintsSatisfied) {
           // This vertex is happy, no need to signal.

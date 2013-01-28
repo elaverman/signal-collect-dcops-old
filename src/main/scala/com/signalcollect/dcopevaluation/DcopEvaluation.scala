@@ -50,9 +50,7 @@ import com.signalcollect.StateForwarderEdge
  */
 object DcopEvaluation extends App {
 
-  val evalName = "weak NE" +
-  		"" +
-  		""
+  val evalName = "weak NE" 
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,

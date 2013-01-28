@@ -211,24 +211,7 @@ class DSANVertex(
       // State has changed, we always signal.
       1
     }
-
-    lastSignalState match {
-      case Some(oldState) =>
-        if ((oldState == state) &&
-          (((explorationProbability(time, maxDelta) < 0.000001)
-            && (!existsBetterStateUtility))
-            || (utility == constraints.size))) {
-          //computation is allowed to stop only if state has not changed and the utility is maximized numberSatisfied instead of utility
-          0
-        } else {
-          println("Vertex: "+id+" at time "+time+" EP"+explorationProbability(time, maxDelta)+" EBSU "+existsBetterStateUtility+" u "+utility+" csz "+constraints.size)
-          1
-        }
-      case other => 1
-    }
-
   }
-
 }
 
 class GlobalUtility extends AggregationOperation[(Int, Double)] {

@@ -53,9 +53,9 @@ class DcopEvaluationRun(
   def loadGraph = {
     graphProvider.populate(graph, vertexBuilder, edgeBuilder)
     graph.awaitIdle
-    println("Printing vertex states")
-    graph.foreachVertex(println(_))
-    println("Done printing vertex states")
+//    println("Printing vertex states")
+//    graph.foreachVertex(println(_))
+//    println("Done printing vertex states")
     readLine
   }
 
@@ -68,16 +68,16 @@ class DcopEvaluationRun(
 
   def execute = {
     println("Before aggregate")
-    println("Printing vertex states")
-    graph.foreachVertex(println(_))
-    println("Done printing vertex states")
+   // println("Printing vertex states")
+   // graph.foreachVertex(println(_))
+   // println("Done printing vertex states")
     
     vertexBuilder match {
       case vb: GoogleDSANVertexBuilder =>
         graph.foreachVertex(v => v match {
           case vertex: DSANVertex => {
             val targetIds = vertex.outgoingEdges.keys
-            println("In aggregation operation add ctr to DSANVertex " + vertex.id + " with " + vertex.edgeCount + " edges: " + targetIds)
+           // println("In aggregation operation add ctr to DSANVertex " + vertex.id + " with " + vertex.edgeCount + " edges: " + targetIds)
 
             var constraints: List[SimpleDiffConstraint] = List()
             for (targetId <- targetIds) {
@@ -92,20 +92,16 @@ class DcopEvaluationRun(
         })
       case other => graph
     }
-    println("After aggregate")
 
-    println("Printing vertex states")
-    graph.foreachVertex(println(_))
-    println("Done printing vertex states")
-    readLine
     stats = graph.execute(executionConfiguration)
     stats
   }
 
   override def postExecute: List[(String, String)] = {
     val pseudoAggregate = graph.aggregate(new GlobalUtility)
+    val nashEquilibrium = graph.aggregate(new NashEquilibrium)
 
-    List[(String, String)](("maxUtility", pseudoAggregate._1.toString), ("utility", pseudoAggregate._2.toString), ("domainSize", graphProvider.domainSize.toString), ("graphSize", graphProvider.graphSize.toString), ("debug", if (stats.aggregatedWorkerStatistics.numberOfVertices < 101) graph.aggregate(new Visualizer).toString else " "))
+    List[(String, String)](("isNE", nashEquilibrium.toString), ("maxUtility", pseudoAggregate._1.toString), ("utility", pseudoAggregate._2.toString), ("domainSize", graphProvider.domainSize.toString), ("graphSize", graphProvider.graphSize.toString), ("debug", if (stats.aggregatedWorkerStatistics.numberOfVertices < 101) graph.aggregate(new Visualizer).toString else " "))
 
   }
 
@@ -119,7 +115,10 @@ class DcopEvaluationRun(
 
 class Visualizer extends AggregationOperation[List[(Any, String)]] {
   val neutralElement: List[(Any, String)] = List()
-  def extract(v: Vertex[_, _]): List[(Any, String)] = List((v.id, v.state.toString))
+  def extract(v: Vertex[_, _]): List[(Any, String)] = v match {
+    case vertex: ApproxBestResponseVertex[_,_] =>  List((vertex.id, vertex.state.toString+" "+vertex.existsBetterStateUtility.toString))
+    case other => List((v.id, v.state.toString))
+  }
   def reduce(elements: Stream[List[(Any, String)]]): List[(Any, String)] = elements.foldLeft(neutralElement)(aggregate)
   def aggregate(a: List[(Any, String)], b: List[(Any, String)]): List[(Any, String)] = a ++ b
 

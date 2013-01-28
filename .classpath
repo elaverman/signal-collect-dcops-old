@@ -6,9 +6,9 @@
   <classpathentry path="/Users/verman/Documents/workspace/signal-collect-evaluation/lib/core-1.0.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/Documents/workspace/signal-collect-evaluation/lib/spreadsheet-3.0.jar" kind="lib"></classpathentry>
   <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"></classpathentry>
-  <classpathentry path="/Users/verman/.ivy2/cache/com.typesafe.akka/akka-actor_2.10.0-RC5/bundles/akka-actor_2.10.0-RC5-2.1.0-RC5.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/verman/.ivy2/cache/com.typesafe.akka/akka-actor_2.10/bundles/akka-actor_2.10-2.1.0.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/com.typesafe/config/bundles/config-1.0.0.jar" kind="lib"></classpathentry>
-  <classpathentry path="/Users/verman/.ivy2/cache/com.typesafe.akka/akka-remote_2.10.0-RC5/bundles/akka-remote_2.10.0-RC5-2.1.0-RC5.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/verman/.ivy2/cache/com.typesafe.akka/akka-remote_2.10/bundles/akka-remote_2.10-2.1.0.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/io.netty/netty/bundles/netty-3.5.8.Final.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/com.google.protobuf/protobuf-java/jars/protobuf-java-2.4.1.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/org.uncommons.maths/uncommons-maths/jars/uncommons-maths-1.2.2a.jar" kind="lib"></classpathentry>
@@ -17,7 +17,6 @@
   <classpathentry path="/Users/verman/.ivy2/cache/org.ow2.asm/asm/jars/asm-4.0.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/com.esotericsoftware.minlog/minlog/jars/minlog-1.2.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/org.objenesis/objenesis/jars/objenesis-1.2.jar" kind="lib"></classpathentry>
-  <classpathentry path="/Users/verman/.ivy2/cache/org.tukaani/xz/jars/xz-1.1.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/ch.ethz.ganymed/ganymed-ssh2/jars/ganymed-ssh2-build210.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/commons-codec/commons-codec/jars/commons-codec-1.7.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/verman/.ivy2/cache/org.apache.jena/jena-arq/jars/jena-arq-2.9.3.jar" kind="lib"></classpathentry>

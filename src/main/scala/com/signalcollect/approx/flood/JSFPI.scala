@@ -80,6 +80,34 @@ class JSFPIVertex(
   var oldStateWeightedAvgUtility: Double = 0
   // var numberSatisfied: Int = 0 //number of satisfied constraints
   //  val fadingMemory: Double = 0.03 //constant rho for fading memory  - is 1 if we do not take into account memory and only current utility
+  var neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
+
+  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double): Boolean = {
+    var existsBetterThanCurrentStateUtility: Boolean = false
+    var i: Int = 0
+    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
+      val candidateState = possibleValues(i)
+      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
+      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+      if ((candidateState != currentState) && (possibleStatesConfigsUtility >= currentStateUtility))
+        existsBetterThanCurrentStateUtility = true
+      i = i + 1
+    }
+    existsBetterThanCurrentStateUtility
+  }
+
+  def existsBetterStateUtility: Boolean = computeIfBetterStatesExist(state, computeUtility(state))
+
+  def computeUtility(ownConfig: Int): Double = {
+    neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
+
+    //Calculate utility and number of satisfied constraints for the current value
+    val configs = neighbourConfigs + (id -> ownConfig)
+    //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
+
+    constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
+
+  }
 
   /**
    * The collect function chooses a new random state and chooses it if it improves over the old state,
@@ -88,12 +116,12 @@ class JSFPIVertex(
   def collect(oldState: Int, mostRecentSignals: Iterable[Int]): Int = {
 
     //Update the weighted average utilities for each action 
-    val neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
+    //val neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
 
     for (i <- 0 to (possibleValues.size - 1)) {
       state = possibleValues(i)
-      val possibleStatesConfigs = neighbourConfigs + (id -> state)
-      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+      //val possibleStatesConfigs = neighbourConfigs + (id -> state)
+      val possibleStatesConfigsUtility = computeUtility(state)//constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
       //(constraints map (_.utility(possibleStatesConfigs)) sum)
       weightedAvgUtilities(i) = fadingMemory * possibleStatesConfigsUtility + (1 - fadingMemory) * weightedAvgUtilities(i)
     }

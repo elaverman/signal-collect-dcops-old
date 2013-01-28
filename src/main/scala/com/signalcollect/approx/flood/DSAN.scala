@@ -96,8 +96,8 @@ class DSANVertex(
   var time: Int = 0 //(System.nanoTime() - startTime)/    //time counter used for calculating temperature
   //var oldState = possibleValues(0)
 
-
-   val maxDelta: Double = (-1 * constraints.size).toDouble
+  var neighbourConfigs: Map[Any, Int] = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
+  val maxDelta: Double = (-1 * constraints.size).toDouble
   var utility: Double = 0
   var existsBetterStateUtility = false
   //var numberHard: Int = constraints.foldLeft(0)((a, b) => a + b.hardInt) //number of hard constraints
@@ -105,25 +105,50 @@ class DSANVertex(
   //var numberSatisfiedHard: Int = 0 //number of satisfied hard constraints
   //val constTemp: Double = 100 //constant for calculating temperature
 
-  val alarm: Timer = new Timer(100) //Seems unnecessary
+  //val alarm: Timer = new Timer(100) //Seems unnecessary
 
   //println(constraints)
 
+  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double): Boolean = {
+    var existsBetterThanCurrentStateUtility: Boolean = false
+    var i: Int = 0
+    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
+      val candidateState = possibleValues(i)
+      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
+      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+      if ((candidateState != currentState) && (possibleStatesConfigsUtility > currentStateUtility)) // strict NEEE when >= TODO change back to >=
+        existsBetterThanCurrentStateUtility = true
+      i = i + 1
+    }
+    existsBetterThanCurrentStateUtility
+  }
+
+  def computeUtility(ownConfig: Int): Double = {
+    neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
+
+    //Calculate utility and number of satisfied constraints for the current value
+    val configs = neighbourConfigs + (id -> ownConfig)
+    //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
+
+    constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
+
+  }
+
   def getRandomState = possibleValues(r.nextInt(possibleValues.size))
 
-//  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double, neighbourConfigs: Map[Any, Int]): Boolean = {
-//    var existsBetterThanCurrentStateUtility = false
-//    var i: Int = 0
-//    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
-//      val candidateState = possibleValues(i)
-//      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
-//      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
-//      if ((candidateState != currentState) && (possibleStatesConfigsUtility >= currentStateUtility))
-//        existsBetterThanCurrentStateUtility = true
-//      i = i + 1
-//    }
-//    existsBetterThanCurrentStateUtility
-//  }
+  //  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double, neighbourConfigs: Map[Any, Int]): Boolean = {
+  //    var existsBetterThanCurrentStateUtility = false
+  //    var i: Int = 0
+  //    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
+  //      val candidateState = possibleValues(i)
+  //      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
+  //      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+  //      if ((candidateState != currentState) && (possibleStatesConfigsUtility >= currentStateUtility))
+  //        existsBetterThanCurrentStateUtility = true
+  //      i = i + 1
+  //    }
+  //    existsBetterThanCurrentStateUtility
+  //  }
 
   /**
    * The collect function chooses a new random state and chooses it if it improves over the old state,
@@ -136,13 +161,13 @@ class DSANVertex(
     // while (!alarm.stopped) //Seems unnecessary
     //{}
 
-    val neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
+//    val neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
+//
+//    //Calculate utility and number of satisfied constraints for the current value
+//    val configs = neighbourConfigs + (id -> oldState)
+//    //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
 
-    //Calculate utility and number of satisfied constraints for the current value
-    val configs = neighbourConfigs + (id -> oldState)
-    //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
-
-    utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
+    utility =  computeUtility(oldState)// constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
     //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
     //numberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs) * b.hardInt)
 
@@ -151,8 +176,8 @@ class DSANVertex(
 
     //Calculate utility and number of satisfied constraints for the new value
     val newState = getRandomState
-    val newconfigs = neighbourConfigs + (id -> newState)
-    val newStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
+//    val newconfigs = neighbourConfigs + (id -> newState)
+    val newStateUtility = computeUtility(newState)//constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
     //val newNumberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs))
     //val newNumberSatisfiedHard = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(newconfigs) * b.hardInt)
 
@@ -209,9 +234,11 @@ class DSANVertex(
     lastSignalState match {
       case Some(oldState) =>
         if ((oldState == state) && (((explorationProbability(time, maxDelta) < 0.000001) && (!existsBetterStateUtility)) || (utility == constraints.size))) { //computation is allowed to stop only if state has not changed and the utility is maximized numberSatisfied instead of utility
-          //println(explorationProbability(time, maxDelta))
+        //  println("Vertex: " + id + " at time " + time + " EP"+ explorationProbability(time, maxDelta)+ " EBSU "+existsBetterStateUtility+" u "+utility+ " csz " +constraints.size)
+     		
           0
         } else {
+          println("Vertex: " + id + " at time " + time + " EP"+ explorationProbability(time, maxDelta)+ " EBSU "+existsBetterStateUtility+" u "+utility+ " csz " +constraints.size)
           1
         }
       case other => 1
@@ -227,8 +254,6 @@ class DSANVertex(
   //  //    0.0
   //  
   //  } //end collectScore
-
-
 
 } //end DSANVertex class
 

@@ -36,6 +36,7 @@ import com.signalcollect.Vertex
 import com.signalcollect.interfaces.AggregationOperation
 import com.signalcollect.ExecutionStatistics
 import com.signalcollect.Edge
+import collection.JavaConversions._
 
 class DcopEvaluationRun(
   val algorithmName: String,
@@ -48,31 +49,62 @@ class DcopEvaluationRun(
   reportMemoryStats: Boolean = false) extends EvaluationAlgorithmRun[Any, Any] {
 
   var stats: ExecutionInformation = null
-  
+
   def loadGraph = {
     graphProvider.populate(graph, vertexBuilder, edgeBuilder)
+    graph.awaitIdle
+    println("Printing vertex states")
+    graph.foreachVertex(println(_))
+    println("Done printing vertex states")
+    readLine
   }
 
   //TODO: Cut the AdoptFileGraphGenerator: creating a graph instance to use in buildGraph, and adding edges and vertices for loadGraph
 
   def buildGraph = {
     graph = graphBuilder.build
+
   }
 
   def execute = {
-    //println("Running computation")
-    //readLine
-    		
-    //    println("Printing vertex states")
-    //    graph.foreachVertex(println(_))
-    //    println("Done printing vertex states")
+    println("Before aggregate")
+    println("Printing vertex states")
+    graph.foreachVertex(println(_))
+    println("Done printing vertex states")
+    
+    vertexBuilder match {
+      case vb: GoogleDSANVertexBuilder =>
+        graph.foreachVertex(v => v match {
+          case vertex: DSANVertex => {
+            val targetIds = vertex.outgoingEdges.keys
+            println("In aggregation operation add ctr to DSANVertex " + vertex.id + " with " + vertex.edgeCount + " edges: " + targetIds)
+
+            var constraints: List[SimpleDiffConstraint] = List()
+            for (targetId <- targetIds) {
+              constraints = SimpleDiffConstraint(List(vertex.id, targetId.asInstanceOf[Int])) :: constraints
+
+            }
+            vertex.constraints = constraints
+            //println("vertex "+vertex.id +" Constraints: "+constraints)
+          }
+          case vertex: JSFPIVertex => println("This is not the vertex you are looking for " + vertex)
+          case other => println("This is not even a vertex " + other)
+        })
+      case other => graph
+    }
+    println("After aggregate")
+
+    println("Printing vertex states")
+    graph.foreachVertex(println(_))
+    println("Done printing vertex states")
+    readLine
     stats = graph.execute(executionConfiguration)
     stats
   }
 
   override def postExecute: List[(String, String)] = {
     val pseudoAggregate = graph.aggregate(new GlobalUtility)
-    
+
     List[(String, String)](("maxUtility", pseudoAggregate._1.toString), ("utility", pseudoAggregate._2.toString), ("domainSize", graphProvider.domainSize.toString), ("graphSize", graphProvider.graphSize.toString), ("debug", if (stats.aggregatedWorkerStatistics.numberOfVertices < 101) graph.aggregate(new Visualizer).toString else " "))
 
   }

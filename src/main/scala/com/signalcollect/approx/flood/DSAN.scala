@@ -78,12 +78,16 @@ class GoogleDSANVertexBuilder(algorithmDescription: String, explorationProbabili
   override def toString = "Google DSAN - " + algorithmDescription
 }
 
-
-
-
 //TODO Converged not when global optimum is obtained but when temperature reaches 0 and i'm not in a NE
 
-class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibleValues: Array[Int], explorationProbability: (Int, Double) => Double) extends DataGraphVertex(id, initialState) {
+class DSANVertex(
+  id: Int,
+  initialState: Int,
+  var constraints: Iterable[Constraint],
+  val possibleValues: Array[Int],
+  explorationProbability: (Int, Double) => Double)
+  extends DataGraphVertex(id, initialState)
+  with ApproxBestResponseVertex[Int, Int] {
 
   type Signal = Int
   val r = new Random
@@ -92,8 +96,8 @@ class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibl
   var time: Int = 0 //(System.nanoTime() - startTime)/    //time counter used for calculating temperature
   //var oldState = possibleValues(0)
 
-  var constraints: Iterable[Constraint] = csts
-  val maxDelta: Double = (-1 * constraints.size).toDouble
+
+   val maxDelta: Double = (-1 * constraints.size).toDouble
   var utility: Double = 0
   var existsBetterStateUtility = false
   //var numberHard: Int = constraints.foldLeft(0)((a, b) => a + b.hardInt) //number of hard constraints
@@ -106,6 +110,20 @@ class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibl
   //println(constraints)
 
   def getRandomState = possibleValues(r.nextInt(possibleValues.size))
+
+//  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double, neighbourConfigs: Map[Any, Int]): Boolean = {
+//    var existsBetterThanCurrentStateUtility = false
+//    var i: Int = 0
+//    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
+//      val candidateState = possibleValues(i)
+//      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
+//      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
+//      if ((candidateState != currentState) && (possibleStatesConfigsUtility >= currentStateUtility))
+//        existsBetterThanCurrentStateUtility = true
+//      i = i + 1
+//    }
+//    existsBetterThanCurrentStateUtility
+//  }
 
   /**
    * The collect function chooses a new random state and chooses it if it improves over the old state,
@@ -140,23 +158,6 @@ class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibl
 
     //for convergence detection we see if there is any other state that could improve utility.
 
-    var existsBetterThanOldStateUtility = false
-    var existsBetterThanNewStateUtility = false
-    var i: Int = 0
-    while (!(existsBetterThanOldStateUtility && existsBetterThanNewStateUtility) && (i < possibleValues.size)) {
-      val candidateState = possibleValues(i)
-      val possibleStatesConfigs = neighbourConfigs + (id -> candidateState)
-      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
-
-      if ((candidateState != oldState) && (possibleStatesConfigsUtility >= utility))
-        existsBetterThanOldStateUtility = true
-
-      if ((candidateState != newState) && (possibleStatesConfigsUtility >= newStateUtility))
-        existsBetterThanNewStateUtility = true
-
-      i = i + 1
-    }
-
     // delta is the difference between the utility of the new randomly selected state and the utility of the old state. 
     // It is > 0 if the new state would lead to improvements
     val delta: Double = newStateUtility - utility
@@ -176,10 +177,10 @@ class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibl
         //          graphEditor.sendSignalToVertex(0.0, id)
 
         utility = newStateUtility
-        existsBetterStateUtility = existsBetterThanNewStateUtility
+        existsBetterStateUtility = computeIfBetterStatesExist(newState, newStateUtility)
         //     numberSatisfied = newNumberSatisfied
 
-        //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
+        println("Vertex: " + id + " utility " + utility + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         //alarm.go //Seems unnecessary
 
         newState
@@ -189,16 +190,16 @@ class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibl
         //graphEditor.sendSignalToVertex(0.0, id) //We send a dummy value to self to avoid blocking - doesn't work in the Async version
         //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "<= 0 and NOT changed to state: " + newState + " instead of " + oldState + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         //alarm.go //Seems unnecessary
-        existsBetterStateUtility = existsBetterThanOldStateUtility
+        existsBetterStateUtility = computeIfBetterStatesExist(oldState, utility)
         oldState
       }
     } else { //The new state improves utility (delta>0), so we adopt the new state
       utility = newStateUtility
       //    numberSatisfied = newNumberSatisfied
 
-      //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + oldState)
+      println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + oldState)
       ///alarm.go //Seems unnecessary
-      existsBetterStateUtility = existsBetterThanNewStateUtility
+      existsBetterStateUtility = computeIfBetterStatesExist(newState, newStateUtility)
       newState
     }
 
@@ -208,7 +209,7 @@ class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibl
     lastSignalState match {
       case Some(oldState) =>
         if ((oldState == state) && (((explorationProbability(time, maxDelta) < 0.000001) && (!existsBetterStateUtility)) || (utility == constraints.size))) { //computation is allowed to stop only if state has not changed and the utility is maximized numberSatisfied instead of utility
-          println(explorationProbability(time, maxDelta))
+          //println(explorationProbability(time, maxDelta))
           0
         } else {
           1
@@ -227,14 +228,7 @@ class DSANVertex(id: Int, initialState: Int, csts: Iterable[Constraint], possibl
   //  
   //  } //end collectScore
 
-  override def toString = {
-    val stringResult = "Vertex ID: " + id + ", State: " + state + " Utility: " + utility + "/" + constraints.size +
-      "\n Edges: " + this.outgoingEdges.size + //values + 
-      "\n Possible values: " + possibleValues.mkString("; ") +
-      "\n Constraints: " + csts.mkString("; ")
 
-    stringResult
-  }
 
 } //end DSANVertex class
 
@@ -249,22 +243,17 @@ class GlobalUtility extends AggregationOperation[(Int, Double)] {
   def aggregate(a: (Int, Double), b: (Int, Double)): (Int, Double) = (a._1 + b._1, a._2 + b._2)
 }
 
-class AddConstraintsToVertex extends AggregationOperation[Unit] {
-
-  def extract(v: Vertex[_, _]) = v match {
-    case vertex: DSANVertex => {
-      val targetIds = vertex.outgoingEdges.keys
-      var constraints: List[SimpleDiffConstraint] = List()
-      for (targetId <- targetIds) {
-        constraints = SimpleDiffConstraint(List(vertex.id, targetId.asInstanceOf[Int])) :: constraints
-
-      }
-      vertex.constraints = constraints
+class NashEquilibrium extends AggregationOperation[Boolean] {
+  val neutralElement = true
+  def extract(v: Vertex[_, _]): Boolean = v match {
+    case vertex: ApproxBestResponseVertex[_, _] => !vertex.existsBetterStateUtility
+    case other => {
+      throw new Exception("No ApproxBestResponseVertex")
+      neutralElement
     }
-    case vertex: JSFPIVertex => Unit
   }
-  def reduce(elements: Stream[Unit]) = Unit
-
+  def reduce(elements: Stream[Boolean]) = elements.foldLeft(neutralElement)(aggregate)
+  def aggregate(a: Boolean, b: Boolean): Boolean = a && b
 }
 
 class DSANGlobalTerminationCondition(

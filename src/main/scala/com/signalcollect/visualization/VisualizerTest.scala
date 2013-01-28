@@ -8,16 +8,16 @@ import com.signalcollect.StateForwarderEdge
 object VisualizerTest extends App {
   
  
-
-  val graph = GraphBuilder.build
-val c12: Constraint = Variable(1) != Variable(2)
-  val c13: Constraint = Variable(1) != Variable(3)
-  val c23: Constraint = Variable(3) != Variable(2)
-  val c34: Constraint = Variable(3) != Variable(4)
-  val c45: Constraint = Variable(5) != Variable(4)
-  val c35: Constraint = Variable(5) != Variable(3)
-  val c56: Constraint = Variable(5) != Variable(6)
-  val c26: Constraint = Variable(6) != Variable(2)
+//
+//  val graph = GraphBuilder.build
+//val c12: Constraint = Variable(1) != Variable(2)
+//  val c13: Constraint = Variable(1) != Variable(3)
+//  val c23: Constraint = Variable(3) != Variable(2)
+//  val c34: Constraint = Variable(3) != Variable(4)
+//  val c45: Constraint = Variable(5) != Variable(4)
+//  val c35: Constraint = Variable(5) != Variable(3)
+//  val c56: Constraint = Variable(5) != Variable(6)
+//  val c26: Constraint = Variable(6) != Variable(2)
 
 //  graph.addVertex(new DSANVertex(1, 0, Array(c12, c13), Array(0, 1, 2)))
 //  graph.addVertex(new DSANVertex(2, 0, Array(c12, c23, c26), Array(0, 1, 2)))

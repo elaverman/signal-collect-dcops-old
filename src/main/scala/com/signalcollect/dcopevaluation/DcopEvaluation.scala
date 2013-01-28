@@ -50,7 +50,7 @@ import com.signalcollect.StateForwarderEdge
  */
 object DcopEvaluation extends App {
 
-  val evalName = "google"
+  val evalName = "mini small-google 1worker "
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,
@@ -64,7 +64,7 @@ object DcopEvaluation extends App {
   val terminationCondition = new DSANGlobalTerminationCondition(out, outTime, startTime)
 
   val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(120000)
-  val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(1200000) //(36000000)
+  val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(300000)//(1200000) //(36000000)
 
   val repetitions = 2
   val executionConfigurations = List( /*executionConfigAsync, */ executionConfigSync)
@@ -81,9 +81,9 @@ object DcopEvaluation extends App {
     for (executionConfig <- executionConfigurations) {
       for (numberOfColors <- Range(12, 4, -1)) {
         for (graphSize <- graphSizes) {
-          for (graphProvider <- List(new ConstraintGoogleGraphLoader(8, edgeFilename = "web-Google.txt", directed = false )/*, new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors), new ConstraintGridProvider(graphSize, graphSize, numberOfColors)*/))
+          for (graphProvider <- List(new ConstraintGoogleGraphLoader(1/*8*/, edgeFilename = "mini-web-Google.txt", directed = false )/*, new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors), new ConstraintGridProvider(graphSize, graphSize, numberOfColors)*/))
             for (algorithm <- algorithmsList) {
-              val graphBuilder = new GraphBuilder[Any, Any]()
+              val graphBuilder = new GraphBuilder[Any, Any]().withConsole(true)
               fastEval.addJobForEvaluationAlgorithm(new DcopEvaluationRun(algorithm.toString, graphBuilder = graphBuilder, vertexBuilder = algorithm, edgeBuilder = (x: Int, y: Int) => new StateForwarderEdge(y), graphProvider = graphProvider, executionConfiguration = executionConfig, jvmParams = jvmParameters, reportMemoryStats = true))
             }
         }

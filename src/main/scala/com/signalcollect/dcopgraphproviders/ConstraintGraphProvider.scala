@@ -143,7 +143,7 @@ class ConstraintGoogleGraphLoader(numberOfWorkers: Int, edgeFilename: String = "
 
   def domainSize = numberOfColors
 
-  def graphSize = 875713
+  def graphSize = 10
 
   override def toString = "GoogleFileGraphLoader" + edgeFilename
 

@@ -31,10 +31,11 @@ import scala.collection.mutable.OpenHashMap
 import com.signalcollect.approx.flood.Constraint
 import com.signalcollect.approx.flood.ConstraintVertexBuilder
 
-class BrFastVertexBuilder(algorithmDescription: String) extends ConstraintVertexBuilder {
+class GreedyExplorerVertexBuilder(algorithmDescription: String) extends ConstraintVertexBuilder {
   def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
     val r = new Random
-    val v = new BrFast(id, domain.size, domain(r.nextInt(domain.size)).asInstanceOf[Byte])
+    val colors: Set[Byte] = (0 until domain.size).toSet map ((color: Int) => color.asInstanceOf[Byte])
+    val v = new GreedyExplorer(id, colors, domain(r.nextInt(domain.size)).asInstanceOf[Byte])
     val targetIdArray = ((constraints flatMap (_.variablesList filter (_ != id))).toSet.asInstanceOf[Set[Int]]).toArray[Int]
     v.setTargetIdArray(targetIdArray)
     v
@@ -55,13 +56,11 @@ class BrFastVertexBuilder(algorithmDescription: String) extends ConstraintVertex
  * @param id: the vertex id
  * @param numColors: the number of colors (labels) used to color the graph, from 0 to numColors-1
  */
-class BrFast(val id: Int, numColors: Int, var state: Byte) extends Vertex[Int, Byte] {
+class GreedyExplorer(val id: Int, val colors: Set[Byte], var state: Byte) extends Vertex[Int, Byte] {
 
   type Signal = Byte
 
   var lastSignalState: Byte = -1
-
-  val colors: Set[Byte] = (0 until numColors).toSet map ((color: Int) => color.asInstanceOf[Byte])
 
   def setState(s: Byte) {
     state = s
@@ -95,10 +94,10 @@ class BrFast(val id: Int, numColors: Int, var state: Byte) extends Vertex[Int, B
     lastSignalState = state
   }
 
-  protected val mostRecentSignalMap = new OpenHashMap[Int, Byte]()
+  protected val mostRecentSignalMap = new OpenHashMap[Int, Byte](1)
 
   def deliverSignal(signal: Any, sourceId: Option[Any]): Boolean = {
-    mostRecentSignalMap(sourceId.get.asInstanceOf[Int]) = signal.asInstanceOf[Byte]
+    mostRecentSignalMap.put(sourceId.get.asInstanceOf[Int], signal.asInstanceOf[Byte])
     false
   }
 
@@ -122,7 +121,7 @@ class BrFast(val id: Int, numColors: Int, var state: Byte) extends Vertex[Int, B
   }
 
   /** Returns a random color */
-  def getRandomColor: Byte = Random.nextInt(numColors).asInstanceOf[Byte]
+  def getRandomColor: Byte = Random.nextInt(colors.size).asInstanceOf[Byte]
 
   /**
    * Variable that indicates if the neighbors of this vertex should be informed
@@ -193,7 +192,7 @@ object VertexColoring extends App {
   //  val grid = new Grid(100, 100)
   val graph = new GraphBuilder[Int, Any].build
   val chainBuilder = new Chain(5, true)
-  chainBuilder.populate(graph, (id: Int) => new BrFast(id, numColors = 2, state = 1), (sourceId, targetId) => new StateForwarderEdge(targetId))
+  chainBuilder.populate(graph, (id: Int) => new GreedyExplorer(id, (0 until 2).toSet map ((color: Int) => color.asInstanceOf[Byte]), state = 1), (sourceId, targetId) => new StateForwarderEdge(targetId))
   //  graph.addVertex(new BrFast(1, numColors = 2, state = 1.asInstanceOf[Byte]))
   //  graph.addVertex(new BrFast(2, numColors = 2, state = 1.asInstanceOf[Byte]))
   //  graph.addVertex(new BrFast(3, numColors = 2, state = 1.asInstanceOf[Byte]))

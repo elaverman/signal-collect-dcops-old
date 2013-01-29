@@ -51,7 +51,7 @@ import com.signalcollect.approx.flood.DSAVariant
  */
 object DcopEvaluation extends App {
 
-  val evalName = "DSA fixed fixed"
+  val evalName = "WRMI-old score signal"
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val kraken = new TorqueHost(
@@ -73,26 +73,23 @@ object DcopEvaluation extends App {
   val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(420000) //(36000000)
 
   val repetitions = 1
-  val executionConfigurations = List(executionConfigAsync, executionConfigSync)
-  val graphSizes = List(10, 100)//, 1000, 3000)
+  val executionConfigurations = List(/*executionConfigAsync, */ executionConfigSync)
+  val graphSizes = List(2)//, 1000, 3000)
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-    new DSAVertexBuilder("first trial", DSAVariant.B, 0.5)
-      
+    //new DSAVertexBuilder("first trial", DSAVariant.B, 0.5)
+    new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
       //new LowMemoryExplorerVertexBuilder("Greedy expl")
       //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
     //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
 
-  val googleAlgorithmsList = List(
-    new GoogleDSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))))
-
-  val googleGraphProviderList = List(new ConstraintGoogleGraphLoader(8, edgeFilename = "web-Google.txt", directed = false))
-
+  
+  
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(12, 10, 8, 6, 4)) {
+      for (numberOfColors <- List(4)) {
         for (graphSize <- graphSizes) {
           for (graphProvider <- /*googleGraphProviderList */ List(new ConstraintGridProvider(graphSize, graphSize, numberOfColors)/*, new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)*/))
             for (algorithm <- algorithmsList) {

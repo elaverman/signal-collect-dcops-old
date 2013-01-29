@@ -74,11 +74,7 @@ class JSFPIVertex(
   type Signal = Int
   var weightedAvgUtilities: Array[Double] = Array.fill[Double](possibleValues.size)(0)
   var utility: Double = 0
-  var oldStateWeightedAvgUtility: Double = 0
   var neighbourConfig: Map[Any, Int] = _
-
-
-
   var existsBetterStateUtility: Boolean = false
 
   def computeUtility(ownConfig: Int): Double = {

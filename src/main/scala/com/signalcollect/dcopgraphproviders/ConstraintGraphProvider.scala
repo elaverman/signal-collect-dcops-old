@@ -108,7 +108,7 @@ class ConstraintLatinSquareProvider(val width: Int = 10, height: Int = 10, numbe
   def graphSize = width
 
   override def toString() = {
-    "Grid"
+    "Latin Square"
   }
 
 }

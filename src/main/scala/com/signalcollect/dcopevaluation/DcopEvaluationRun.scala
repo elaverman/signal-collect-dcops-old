@@ -56,7 +56,7 @@ class DcopEvaluationRun(
 //    println("Printing vertex states")
 //    graph.foreachVertex(println(_))
 //    println("Done printing vertex states")
-    readLine
+   // readLine
   }
 
   //TODO: Cut the AdoptFileGraphGenerator: creating a graph instance to use in buildGraph, and adding edges and vertices for loadGraph
@@ -67,7 +67,7 @@ class DcopEvaluationRun(
   }
 
   def execute = {
-    println("Before aggregate")
+   // println("Before aggregate")
    // println("Printing vertex states")
    // graph.foreachVertex(println(_))
    // println("Done printing vertex states")

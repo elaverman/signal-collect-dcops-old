@@ -36,7 +36,7 @@ import com.typesafe.config.Config
 import com.signalcollect.approx.flood._
 import com.signalcollect.dcopgraphproviders._
 import com.signalcollect.StateForwarderEdge
-import com.signalcollect.approx.performance.BrFastVertexBuilder
+import com.signalcollect.approx.performance.GreedyExplorerVertexBuilder
 
 //TODO replace anything you can with ints and arrays instead of lists
 //TODO function for Nash Equilibrium!
@@ -49,7 +49,7 @@ import com.signalcollect.approx.performance.BrFastVertexBuilder
  */
 object DcopEvaluation extends App {
 
-  val evalName = "Greedy explorer"
+  val evalName = "10 mil greedy explorer"
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val kraken = new TorqueHost(
@@ -70,13 +70,13 @@ object DcopEvaluation extends App {
   val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(1800000)
   val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(1800000) //(36000000)
 
-  val repetitions = 2
+  val repetitions = 1
   val executionConfigurations = List(executionConfigAsync, executionConfigSync)
-  val graphSizes = List(10, 100, 1000, 3000)
+  val graphSizes = List(3334)//10, 100, 1000, 3000)
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-    new BrFastVertexBuilder("Greedy expl")
+    new GreedyExplorerVertexBuilder("Greedy expl")
       //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
     //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
@@ -88,11 +88,11 @@ object DcopEvaluation extends App {
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(30, 20, 12, 10, 8, 6, 4)) {
+      for (numberOfColors <- List(50, 30, 20, 12, 10, 8, 6, 4)) {
         for (graphSize <- graphSizes) {
-          for (graphProvider <- /*googleGraphProviderList */ List(new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors), new ConstraintGridProvider(graphSize, graphSize, numberOfColors)))
+          for (graphProvider <- /*googleGraphProviderList */ List(new ConstraintGridProvider(graphSize, graphSize, numberOfColors)/*, new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)*/))
             for (algorithm <- algorithmsList) {
-              val graphBuilder = new GraphBuilder[Any, Any]().withConsole(true)
+              val graphBuilder = new GraphBuilder[Any, Any]()//.withConsole(true)
               fastEval.addJobForEvaluationAlgorithm(new DcopEvaluationRun(algorithm.toString, graphBuilder = graphBuilder, vertexBuilder = algorithm, edgeBuilder = (x: Int, y: Int) => new StateForwarderEdge(y), graphProvider = graphProvider, executionConfiguration = executionConfig, jvmParams = jvmParameters, reportMemoryStats = true))
             }
         }

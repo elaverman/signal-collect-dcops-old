@@ -25,8 +25,8 @@ trait ApproxBestResponseVertex[Id, Int] extends DataGraphVertex[Id, Int] {
   def existsBetterStateUtility: Boolean
 
  
-  def computeMaxUtilityState(utilityFunction: Int => Double): Int = { //TODO is this ok as a generalization?
-    val utilities = possibleValues map (value => (value, utilityFunction(value)))
+  def computeMaxUtilityState(utilityFunction: Int => Double = computeUtility, possibleStates: Array[Int] = possibleValues): Int = { //TODO is this ok as a generalization?
+    val utilities = possibleStates map (value => (value, utilityFunction(value)))
     val maxUtility = utilities map (_._2) max
     val maxUtilityStates = utilities filter (_._2 == maxUtility)
     val r = new Random
@@ -34,7 +34,7 @@ trait ApproxBestResponseVertex[Id, Int] extends DataGraphVertex[Id, Int] {
     maxUtilityStates(resultPos)._1
   }
 
-  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double, utilityFunction: Int => Double = computeUtility): Boolean = {
+  def computeIfBetterStatesExist(currentState: Int, utilityFunction: Int => Double = computeUtility): Boolean = {
     var maxState = computeMaxUtilityState(utilityFunction)
     (utilityFunction(maxState) > utilityFunction(currentState))		
     //(utilityFunction(maxState) >= utilityFunction(currentState))&&(maxState!=currentState)&&.... //for strict NE?	

@@ -141,19 +141,19 @@ class DSANVertex(
       if (adopt < explorationProbability(time, delta)) {
         // We choose the new state (to explore) over the old state with probability (e(delta/t_i))
         utility = newStateUtility
-        existsBetterStateUtility = computeIfBetterStatesExist(newState, newStateUtility)
+        existsBetterStateUtility = computeIfBetterStatesExist(newState)
         println("Vertex: " + id + " utility " + utility + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + state + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         newState
       } else {
         //With probability 1 - (e(delta/t_i)) we keep the old state which is better
-        existsBetterStateUtility = computeIfBetterStatesExist(state, utility)
+        existsBetterStateUtility = computeIfBetterStatesExist(state)
         state
       }
     } else {
       //The new state improves utility (delta>0), so we adopt the new state
       utility = newStateUtility
       println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + state)
-      existsBetterStateUtility = computeIfBetterStatesExist(newState, newStateUtility)
+      existsBetterStateUtility = computeIfBetterStatesExist(newState)
       newState
     }
   }
@@ -203,7 +203,7 @@ class NashEquilibrium extends AggregationOperation[Boolean] {
   def extract(v: Vertex[_, _]): Boolean = v match {
     case vertex: ApproxBestResponseVertex[_, _] => !vertex.existsBetterStateUtility
     case other => {
-      throw new Exception("No ApproxBestResponseVertex")
+      //throw new Exception("No ApproxBestResponseVertex")
       neutralElement
     }
   }

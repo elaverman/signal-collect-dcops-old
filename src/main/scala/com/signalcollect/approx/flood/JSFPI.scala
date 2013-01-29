@@ -75,21 +75,16 @@ class JSFPIVertex(
   var weightedAvgUtilities: Array[Double] = Array.fill[Double](possibleValues.size)(0)
   var utility: Double = 0
   var oldStateWeightedAvgUtility: Double = 0
-  var neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
+  var neighbourConfig: Map[Any, Int] = _
 
 
 
   var existsBetterStateUtility: Boolean = false
 
   def computeUtility(ownConfig: Int): Double = {
-    neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap 
-
     //Calculate utility and number of satisfied constraints for the current value
     val config = neighbourConfig + (id -> ownConfig)
-    //    println((oldState == state) +" " + (numberSatisfied == constraints.size)+" In collect " + id + " " + configs + " " + constraints)
-
     constraints.foldLeft(0.0)((a, b) => a + b.utility(config))
-
   }
 
   
@@ -99,6 +94,7 @@ class JSFPIVertex(
    */
   def collect: Int = {
 
+    neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
     utility = computeUtility(state)
     
     //Update the weighted average utilities for each action 

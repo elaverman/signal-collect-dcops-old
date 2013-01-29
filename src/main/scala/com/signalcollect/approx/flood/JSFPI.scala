@@ -60,46 +60,29 @@ class JSFPIVertexBuilder(algorithmDescription: String, fadingMemory: Double = 0.
   override def toString = "JSFPI - " + algorithmDescription
 }
 
-//(id: Any, initialState: Int, csts: Iterable[Constraint], possibleValues: Array[Int], explorationProbability: (Int, Double) => Double)
 
 class JSFPIVertex(
-  id: Any,
+  id: Int,
   initialState: Int,
   var constraints: Iterable[Constraint],
   val possibleValues: Array[Int],
   fadingMemory: Double,
   inertia: Double)
   extends DataGraphVertex(id, 0)
-  with ApproxBestResponseVertex[Any, Int] {
+  with ApproxBestResponseVertex[Int, Int] {
 
   type Signal = Int
-  // var inertia: Double = 0.5 //time counter used for calculating temperature
   var weightedAvgUtilities: Array[Double] = Array.fill[Double](possibleValues.size)(0)
   var utility: Double = 0
-  var canBeImproved: Boolean = false
   var oldStateWeightedAvgUtility: Double = 0
-  // var numberSatisfied: Int = 0 //number of satisfied constraints
-  //  val fadingMemory: Double = 0.03 //constant rho for fading memory  - is 1 if we do not take into account memory and only current utility
   var neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
 
-  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double): Boolean = {
-    var existsBetterThanCurrentStateUtility: Boolean = false
-    var i: Int = 0
-    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
-      val candidateState = possibleValues(i)
-      val possibleStatesConfig = neighbourConfig + (id -> candidateState)
-      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfig))
-      if ((candidateState != currentState) && (possibleStatesConfigsUtility >= currentStateUtility))
-        existsBetterThanCurrentStateUtility = true
-      i = i + 1
-    }
-    existsBetterThanCurrentStateUtility
-  }
 
-  def existsBetterStateUtility: Boolean = computeIfBetterStatesExist(state, computeUtility(state))
+
+  var existsBetterStateUtility: Boolean = false
 
   def computeUtility(ownConfig: Int): Double = {
-    neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
+    neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap 
 
     //Calculate utility and number of satisfied constraints for the current value
     val config = neighbourConfig + (id -> ownConfig)
@@ -109,101 +92,56 @@ class JSFPIVertex(
 
   }
 
+  
   /**
    * The collect function chooses a new random state and chooses it if it improves over the old state,
    * or, if it doesn't it still chooses it (for exploring purposes) with probability decreasing with time
    */
   def collect: Int = {
 
+    utility = computeUtility(state)
+    
     //Update the weighted average utilities for each action 
-    //val neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
     var currentEvalState = 0
     for (i <- 0 to (possibleValues.size - 1)) {
       currentEvalState = possibleValues(i)
-      //val possibleStatesConfigs = neighbourConfigs + (id -> state)
-      val possibleStatesConfigsUtility = computeUtility(currentEvalState)//constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfigs))
-      //(constraints map (_.utility(possibleStatesConfigs)) sum)
+      val possibleStatesConfigsUtility = computeUtility(currentEvalState)
       weightedAvgUtilities(i) = fadingMemory * possibleStatesConfigsUtility + (1 - fadingMemory) * weightedAvgUtilities(i)
     }
-    //end Update weighted average utilities and select candidate state
 
     //Select one of the actions with maximum weighted average utilities as candidate State
+    var candidateState = computeMaxUtilityState(weightedAvgUtilities)
 
-    //we initialize the candidate state and the maximumUtility to the first possible state and to its weightedAverageUtility 
-    var candidateState = possibleValues(0)
-    var maxUtility = weightedAvgUtilities(0)
-    var maximumsCount = 1 //how many states with the maximumUtility
 
-    for (i <- 0 to (possibleValues.size - 1)) {
-      if (weightedAvgUtilities(i) > maxUtility) {
-        candidateState = possibleValues(i)
-        maxUtility = weightedAvgUtilities(i)
-        maximumsCount = 1
-      } else {
-        if (weightedAvgUtilities(i) == maxUtility) {
-          maximumsCount += 1
-        }
-      }
-    }
+    //existsBetterStateUtility = weightedAvgUtilities(candidateState) > weightedAvgUtilities(state)
+    existsBetterStateUtility = computeUtility(candidateState) > computeUtility(state) //||((maxUtility==utility)&&(maximumsCount != 1)) //for strict NE. only STRICT NE are absorbing!
 
-    var str: String = "vertex " + id + " WAU vector: "
-    for (i <- 0 to (possibleValues.size - 1))
-      str = str + weightedAvgUtilities(i).toString + " "
-
-    println(str)
-
-    //if we have more than 1 states with the same maximum utility we have to select randomly from them
-    val r = new Random()
-    if (maximumsCount != 1) {
-      var nThMaximum: Int = r.nextInt(maximumsCount) + 1 //random between 1 and the number of maximum utility states
-
-      for (i <- 0 to (possibleValues.size - 1)) {
-        if (weightedAvgUtilities(i) == maxUtility) {
-          if (nThMaximum == 0) {
-            candidateState = possibleValues(i)
-          } else {
-            nThMaximum -= 1
-          }
-        }
-      }
-    }
-    //end Selection of the candidate State
-
-    //Calculate utility and number of satisfied constraints for the candidate state
-    val candidateStateConfigs = neighbourConfig + (id -> candidateState)
-    val candidateStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(candidateStateConfigs))
-
-    //Calculate utility and number of satisfied constraints for the old state
-    oldStateWeightedAvgUtility = weightedAvgUtilities(state)
-
-    val configs = neighbourConfig + (id -> state)
-    utility = constraints.foldLeft(0.0)((a, b) => a + b.utility(configs)) //TODO: should use weightedAvg utilities!!!! 
-    //(constraints map (_.utility(oldStateConfigs)) sum)
-
-    canBeImproved = (maxUtility > oldStateWeightedAvgUtility) //||((maxUtility==utility)&&(maximumsCount != 1)) //only STRICT NE are absorbing!
 
     // With some inertia we keep the last state even if it's not the best. Else, we update to the best new state
 
-    val probability: Double = r.nextDouble()
+    val probability: Double = (new Random).nextDouble()
 
     if ((probability > inertia) && (candidateState != state)) { // we adopt the new maximum state, else we do not change state
-      println("Vertex: " + id + "; changed to state: " + candidateState + " of new WAU/utility " + maxUtility + "/" + candidateStateUtility + " instead of old state " + state + " with WAU/utility " + oldStateWeightedAvgUtility + "/" + utility + "; prob = " + probability + " > inertia =  " + inertia)
-      //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(candidateStateConfigs))
-      //constraints map (_.satisfiesInt(candidateStateConfigs)) sum;
-      canBeImproved = false
-      utility = candidateStateUtility
+      println("Vertex: " + id + "; changed to state: " + candidateState + " of new WAU/utility " + weightedAvgUtilities(candidateState) + "/" + computeUtility(candidateState) + " instead of old state " + state + " with WAU/utility " + weightedAvgUtilities(state) + "/" + computeUtility(state) + "; prob = " + probability + " > inertia =  " + inertia)
+      existsBetterStateUtility = false
+      utility = computeUtility(candidateState)
       return candidateState
     } else {
       if (candidateState != state)
-        println("Vertex: " + id + "; NOT changed to state: " + candidateState + " of new utility " + maxUtility + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " < inertia =  " + inertia)
-      //numberSatisfied = constraints.foldLeft(0)((a, b) => a + b.satisfiesInt(configs))
-      //constraints map (_.satisfiesInt(oldStateConfigs)) sum;
+        println("Vertex: " + id + "; NOT changed to state: " + candidateState + " of new WAU/utility " + weightedAvgUtilities(candidateState) + "/" + computeUtility(candidateState) + " instead of old state " + state + " with WAU/utility " + weightedAvgUtilities(state) + "/" + computeUtility(state) +  "; prob = " + probability + " < inertia =  " + inertia)
       return state
     }
 
   } //end collect function
 
-  //TODO: write functions for NE, global optimum
+  def isStateUnchanged = {
+    lastSignalState match {
+      case Some(oldState) => state == oldState
+      case None => false
+    }
+  }
+  
+
   override def scoreSignal: Double = {
     lastSignalState match {
       case Some(oldState) => //TODO: see if i would add that there are no other possibilities of moving into a same utility state

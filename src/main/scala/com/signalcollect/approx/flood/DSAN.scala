@@ -99,33 +99,11 @@ class DSANVertex(
   var utility: Double = 0
   var existsBetterStateUtility = false
 
-  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double): Boolean = {
-    var existsBetterThanCurrentStateUtility: Boolean = false
-    var i: Int = 0
-    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
-      val candidateState = possibleValues(i)
-      val possibleStatesConfig = neighbourConfig + (id -> candidateState)
-      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfig))
-      if ((candidateState != currentState) && (possibleStatesConfigsUtility > currentStateUtility)) // strict NE when >= TODO change back to >=
-        existsBetterThanCurrentStateUtility = true
-      i = i + 1
-    }
-    existsBetterThanCurrentStateUtility
-  }
 
   def computeUtility(ownConfig: Int): Double = {
     //Calculate utility and number of satisfied constraints for the current value
     val config = neighbourConfig + (id -> ownConfig)
     constraints.foldLeft(0.0)((a, b) => a + b.utility(config))
-  }
-
-  def computeMaxUtilityState: Int = {
-    val utilities = possibleValues map (value => (value, computeUtility(value)))
-    val maxUtility = utilities map (_._2) max
-    val maxUtilityStates = utilities filter (_._2 == maxUtility)
-    val r = new Random
-    val resultPos = r.nextInt(maxUtilityStates.size)
-    maxUtilityStates(resultPos)._1
   }
 
   def getRandomState = possibleValues(r.nextInt(possibleValues.size))
@@ -140,12 +118,12 @@ class DSANVertex(
   def collect: Int = {
     neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
     time += 1
-    utility = computeUtility(state) // constraints.foldLeft(0.0)((a, b) => a + b.utility(configs))
+    utility = computeUtility(state) 
 
     //Calculate utility and number of satisfied constraints for the new value
 
     val newState = getRandomState
-    val newStateUtility = computeUtility(newState) //constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
+    val newStateUtility = computeUtility(newState) 
 
     // Delta is the difference between the utility of the new randomly selected state and the utility of the old state. 
     // It is > 0 if the new state would lead to improvements

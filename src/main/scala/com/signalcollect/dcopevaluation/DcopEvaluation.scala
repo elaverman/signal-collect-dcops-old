@@ -36,6 +36,7 @@ import com.typesafe.config.Config
 import com.signalcollect.approx.flood._
 import com.signalcollect.dcopgraphproviders._
 import com.signalcollect.StateForwarderEdge
+import com.signalcollect.approx.performance.BrFastVertexBuilder
 
 //TODO replace anything you can with ints and arrays instead of lists
 //TODO function for Nash Equilibrium!
@@ -48,12 +49,12 @@ import com.signalcollect.StateForwarderEdge
  */
 object DcopEvaluation extends App {
 
-  val evalName = "DSAN big eval"
+  val evalName = "Greedy explorer"
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val kraken = new TorqueHost(
     jobSubmitter = new TorqueJobSubmitter(username = System.getProperty("user.name"), hostname = "kraken.ifi.uzh.ch"),
-    localJarPath = "./target/signal-collect-evaluation-assembly-2.0.0-SNAPSHOT.jar", priority = TorquePriority.superfast)
+    localJarPath = "./target/signal-collect-dcops-assembly-2.0.0-SNAPSHOT.jar", priority = TorquePriority.superfast)
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,
     executionHost =
@@ -69,13 +70,14 @@ object DcopEvaluation extends App {
   val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(1800000)
   val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(1800000) //(36000000)
 
-  val repetitions = 10
+  val repetitions = 2
   val executionConfigurations = List(executionConfigAsync, executionConfigSync)
   val graphSizes = List(10, 100, 1000, 3000)
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-    new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
+    new BrFastVertexBuilder("Greedy expl")
+      //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
     //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
 

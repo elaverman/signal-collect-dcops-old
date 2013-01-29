@@ -55,10 +55,15 @@
 // *  @param constraints: the set of constraints in which it is involved
 // *  @param possibleValues: which values can the state take
 // */
-//class DSAVertex(id: Any, constraints: Iterable[Constraint], possibleValues: Array[Int], variant: DSAVariant) extends DataGraphVertex(id, 0) {
+//class DSAVertex(
+//  id: Int,
+//  constraints: Iterable[Constraint],
+//  possibleValues: Array[Int],
+//  variant: DSAVariant)
+//  extends DataGraphVertex(id, 0)
+//  with ApproxBestResponseVertex[Int, Int] {
 //
 //  type Signal = Int
-////  var oldState = possibleValues(0)
 //  var utility: Double = 0
 //  var numberSatisfied: Int = 0 //number of satisfied constraints
 //  var inertia: Double = 0.5 //probability to NOT change to the better state and keep the old state instead
@@ -71,7 +76,7 @@
 //   */
 //  def collect: Int = {
 //
-//    val neighbourConfigs = mostRecentSignalMap.map(x => (x._1,x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
+//    val neighbourConfigs = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
 //
 //    //Calculate utility and number of satisfied constraints for the current value
 //    val configs = neighbourConfigs + (id -> state)
@@ -88,7 +93,7 @@
 //
 //    //We search in all the states except the current one 
 //    for (newState <- possibleValues)
-//      if (newState != oldState) {
+//      if (newState != state) {
 //
 //        val newconfigs = neighbourConfigs + (id -> newState)
 //        val newStateUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(newconfigs))
@@ -141,7 +146,7 @@
 //
 //    }
 //
-//    return oldState
+//    return state
 //  } //end collect function
 //
 //  override def scoreSignal: Double = {

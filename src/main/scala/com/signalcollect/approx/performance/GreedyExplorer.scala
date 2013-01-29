@@ -41,7 +41,7 @@ class GreedyExplorerVertexBuilder(algorithmDescription: String) extends Constrai
     v
   }
 
-  override def toString = "DSAN - " + algorithmDescription
+  override def toString = "BRfast - " + algorithmDescription
 }
 
 /**

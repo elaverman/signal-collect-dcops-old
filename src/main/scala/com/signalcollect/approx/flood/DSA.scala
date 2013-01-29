@@ -121,7 +121,7 @@ class DSAVertex(
 
     //if we would select randomly between multiple values with the same maximum Delta we would have the DSA-A,B,C,D or E _barred_, as in [Arshad, Silaghi, 2003]
 
-    println("Vertex: " + id + "] " + state)
+    //println("Vertex: " + id + "] " + state)
 
     // With some inertia we keep the last state even if it's not the best. Else, we update to the best new state. The exceptions are DSA-D and DSA-E, where we update with probability 1.
     val r = new Random()
@@ -129,37 +129,37 @@ class DSAVertex(
 
     if (variant == A) {
       if (!((maxDelta > 0) && (probability > inertia)))
-        println("!!Vertex: " + id + "; NOT changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        //println("!!Vertex: " + id + "; NOT changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
       if ((maxDelta > 0) && (probability > inertia)) {
-        println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        //println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
         utility = maxDeltaUtility
         return maxDeltaState
       }
     }
     if (variant == B) {
       if (((maxDelta > 0) || ((maxDelta == 0) && (numberSatisfied != constraints.size))) && (probability > inertia)) {
-        println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        //println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
         utility = maxDeltaUtility
         return maxDeltaState
       }
     }
     if (variant == C) {
       if ((maxDelta >= 0) && (probability > inertia)) {
-        println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        //println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
         utility = maxDeltaUtility
         return maxDeltaState
       }
     }
     if (variant == D) {
       if ((maxDelta > 0) || ((maxDelta == 0) && (numberSatisfied != constraints.size) && (probability > inertia))) {
-        println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        //println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
         utility = maxDeltaUtility
         return maxDeltaState
       }
     }
     if (variant == E) {
       if ((maxDelta > 0) || ((maxDelta == 0) && (probability > inertia))) {
-        println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        //println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
         utility = maxDeltaUtility
         return maxDeltaState
       }
@@ -190,7 +190,7 @@ object DSA extends App {
 
   val graph = GraphBuilder. /*withLoggingLevel(LoggingLevel.Debug).*/ build
 
-  println("From client: Graph built")
+  //println("From client: Graph built")
 
   //Simple graph with 2 vertices
 
@@ -228,10 +228,10 @@ object DSA extends App {
     }
   }
 
-  println("Begin")
+  //("Begin")
 
   val stats = graph.execute(ExecutionConfiguration().withExecutionMode(ExecutionMode.Synchronous))
-  println(stats)
-  graph.foreachVertex(println(_))
+  //println(stats)
+  //graph.foreachVertex(println(_))
   graph.shutdown
 }

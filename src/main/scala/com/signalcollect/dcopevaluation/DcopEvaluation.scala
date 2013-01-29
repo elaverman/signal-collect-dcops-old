@@ -51,7 +51,7 @@ import com.signalcollect.approx.flood.DSAVariant
  */
 object DcopEvaluation extends App {
 
-  val evalName = "WRMI-old score signal"
+  val evalName = "DSAN and DSA grid"
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val kraken = new TorqueHost(
@@ -72,16 +72,17 @@ object DcopEvaluation extends App {
   val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(420000)
   val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(420000) //(36000000)
 
-  val repetitions = 1
-  val executionConfigurations = List(/*executionConfigAsync, */ executionConfigSync)
-  val graphSizes = List(2)//, 1000, 3000)
+  val repetitions = 10
+  val executionConfigurations = List(executionConfigAsync, executionConfigSync)
+  val graphSizes = List(10, 100)//, 1000)
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-    //new DSAVertexBuilder("first trial", DSAVariant.B, 0.5)
-    new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
-      //new LowMemoryExplorerVertexBuilder("Greedy expl")
-      //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
+      new GreedyExplorerVertexBuilder("Greedy expl"),
+      new DSAVertexBuilder("first trial", DSAVariant.B, 0.5),
+    //new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
+      
+      new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
     //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
 
@@ -89,7 +90,7 @@ object DcopEvaluation extends App {
   
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(4)) {
+      for (numberOfColors <- List(20, 16, 12, 10, 8, 6, 4)) {
         for (graphSize <- graphSizes) {
           for (graphProvider <- /*googleGraphProviderList */ List(new ConstraintGridProvider(graphSize, graphSize, numberOfColors)/*, new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)*/))
             for (algorithm <- algorithmsList) {

@@ -73,19 +73,22 @@ object LatinSquareDcopEvaluation extends App {
 
   val repetitions = 1
   val executionConfigurations = List(executionConfigAsync, executionConfigSync)
-  val graphSizes = List(3334)//10, 100, 1000, 3000)
+  val graphSizes = List(10)//, 100, 1000, 3000)
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-    new LowMemoryExplorerVertexBuilder("Greedy expl")
-      //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
+      new GreedyExplorerVertexBuilder("Greedy expl"),
+    new DSAVertexBuilder("first trial", DSAVariant.B, 0.5),
+    //new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
+      
+      new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
     //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
 
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(30, 20, 12, 10, 8, 6, 4)) {
+      for (numberOfColors <- List(20, 15, 10)/* (200, 150, 100)*/) {
         for (graphSize <- graphSizes) {
           for (graphProvider <- List(new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)))
             for (algorithm <- algorithmsList) {

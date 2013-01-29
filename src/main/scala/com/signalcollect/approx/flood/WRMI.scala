@@ -93,8 +93,10 @@ class WRMIVertex(
     val probabilitySel: Double = r.nextDouble()
     var candidateStateIndex: Int = -1
 
-    if (normFactor < eps)
-      return state
+    if (normFactor == 0){
+      candidateStateIndex = r.nextInt(distribution.length)
+    }
+    else{  
     var partialSum: Double = 0
     for (i <- 0 to (possibleValues.size - 1)) {
       if (candidateStateIndex == -1) {
@@ -104,7 +106,10 @@ class WRMIVertex(
         }
       }
     }
+    }
     possibleValues(candidateStateIndex)
+    
+    
   }
 
   /**
@@ -122,7 +127,7 @@ class WRMIVertex(
     for (i <- 0 to (possibleValues.size - 1)) {
       val regret = computeUtility(possibleValues(i)) - utility
       weightedAvgDiff(i) = fadingMemory * regret + (1 - fadingMemory) * weightedAvgDiff(i)
-      stateRegret(i) = if (weightedAvgDiff(i) > eps) weightedAvgDiff(i) else 0
+      stateRegret(i) = if (weightedAvgDiff(i) > 0 ) weightedAvgDiff(i) else 0
       normFactor += stateRegret(i)
     }
 
@@ -139,7 +144,7 @@ class WRMIVertex(
     if ((acceptanceProbability > inertia) && (candidateState != state)) { // we adopt the new maximum state, else we do not change state
     //  if (id==50)
       println("Vertex: " + id + "; changed to state: " + 
-          candidateState + " of regret/utility " + stateRegret(candidateState) + "/" + computeUtility(candidateState) + 
+          candidateState+"verif index:"+(possibleValues(candidateState)) + " of regret/utility " + stateRegret(candidateState) + "/" + computeUtility(candidateState) + 
           " instead of old state " + state + " with utility " + utility + "; prob = " + acceptanceProbability + " > inertia =  " + inertia
           +"\n "+weightedAvgDiff.mkString("; ")+"\n"+stateRegret.mkString("; "))
       utility = computeUtility(candidateState)
@@ -158,7 +163,7 @@ class WRMIVertex(
   override def scoreSignal: Double = {
     lastSignalState match {
       case Some(oldState) =>
-        if ((oldState == state) && ((utility == constraints.size)||(normFactor < eps))) { //computation is allowed to stop only if state has not changed and the utility is maximized
+        if ((oldState == state) && ((utility == constraints.size)||(normFactor == 0))) { //computation is allowed to stop only if state has not changed and the utility is maximized
           0
         } else {
           1

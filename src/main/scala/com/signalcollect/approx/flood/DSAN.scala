@@ -142,7 +142,7 @@ class DSANVertex(
         // We choose the new state (to explore) over the old state with probability (e(delta/t_i))
         utility = newStateUtility
         existsBetterStateUtility = computeIfBetterStatesExist(newState)
-        println("Vertex: " + id + " utility " + utility + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + state + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
+        //println("Vertex: " + id + " utility " + utility + " at time " + time + "; Case DELTA=" + delta + "<= 0 and changed to state: " + newState + " instead of " + state + " with Adoption of new state prob =" + explorationProbability(time, delta) + " ")
         newState
       } else {
         //With probability 1 - (e(delta/t_i)) we keep the old state which is better
@@ -152,7 +152,7 @@ class DSANVertex(
     } else {
       //The new state improves utility (delta>0), so we adopt the new state
       utility = newStateUtility
-      println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + state)
+      //println("Vertex: " + id + " at time " + time + "; Case DELTA=" + delta + "> 0 and changed to state: " + newState + " instead of " + state)
       existsBetterStateUtility = computeIfBetterStatesExist(newState)
       newState
     }

@@ -48,11 +48,10 @@ object DSAVariant extends Enumeration {
 
 import DSAVariant._
 
-
 class DSAVertexBuilder(algorithmDescription: String, variant: DSAVariant, inertia: Double = 0.5) extends ConstraintVertexBuilder {
   def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
     val r = new Random
-    val v = new DSAVertex(id, domain(r.nextInt(domain.size)), constraints,  domain, variant, inertia)
+    val v = new DSAVertex(id, domain(r.nextInt(domain.size)), constraints, domain, variant, inertia)
 
     for (ctr <- constraints) {
       for (variable <- ctr.variablesList) {
@@ -65,9 +64,8 @@ class DSAVertexBuilder(algorithmDescription: String, variant: DSAVariant, inerti
     v
   }
 
-  override def toString = "DSA - " + algorithmDescription
+  override def toString = "DSA-" + variant.toString() + " " + algorithmDescription
 }
-
 
 /**
  * Represents an Agent
@@ -94,8 +92,6 @@ class DSAVertex(
   var neighbourConfig: Map[Any, Int] = _
   var existsBetterStateUtility = false
 
-  println("Variant is " + variant)
-
   def computeUtility(ownConfig: Int): Double = {
     //Calculate utility and number of satisfied constraints for the current value
     val config = neighbourConfig + (id -> ownConfig)
@@ -109,21 +105,21 @@ class DSAVertex(
   def collect: Int = {
 
     neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap //neighbourConfigs must be immutable and mostRecentSignalMap is mutable, so we convert
-   utility = computeUtility(state)
+    utility = computeUtility(state)
 
-    numberSatisfied = utility.toInt 
-
+    numberSatisfied = utility.toInt
 
     //Initialize maximum Delta (difference between a new state utility and the current state utility) with 0
-//    maxDelta = 0
-//    var maxDeltaState = state
-    
-    val otherValues = possibleValues.toList.filter(x => x!= state)
-    var maxDeltaState = computeMaxUtilityState(possibleStates = otherValues.toArray)
-    
-    maxDelta = computeUtility(maxDeltaState) - state
+    //    maxDelta = 0
+    //    var maxDeltaState = state
 
-   //if we would select randomly between multiple values with the same maximum Delta we would have the DSA-A,B,C,D or E _barred_, as in [Arshad, Silaghi, 2003]
+    val otherValues = possibleValues.toList.filter(x => x != state)
+    var maxDeltaState = computeMaxUtilityState(possibleStates = otherValues.toArray)
+
+    val maxDeltaUtility = computeUtility(maxDeltaState)
+    maxDelta = maxDeltaUtility - utility
+
+    //if we would select randomly between multiple values with the same maximum Delta we would have the DSA-A,B,C,D or E _barred_, as in [Arshad, Silaghi, 2003]
 
     println("Vertex: " + id + "] " + state)
 
@@ -136,30 +132,35 @@ class DSAVertex(
         println("!!Vertex: " + id + "; NOT changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
       if ((maxDelta > 0) && (probability > inertia)) {
         println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        utility = maxDeltaUtility
         return maxDeltaState
       }
     }
     if (variant == B) {
       if (((maxDelta > 0) || ((maxDelta == 0) && (numberSatisfied != constraints.size))) && (probability > inertia)) {
         println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        utility = maxDeltaUtility
         return maxDeltaState
       }
     }
     if (variant == C) {
       if ((maxDelta >= 0) && (probability > inertia)) {
         println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        utility = maxDeltaUtility
         return maxDeltaState
       }
     }
     if (variant == D) {
       if ((maxDelta > 0) || ((maxDelta == 0) && (numberSatisfied != constraints.size) && (probability > inertia))) {
         println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        utility = maxDeltaUtility
         return maxDeltaState
       }
     }
     if (variant == E) {
       if ((maxDelta > 0) || ((maxDelta == 0) && (probability > inertia))) {
         println("Vertex: " + id + "; changed to state: " + maxDeltaState + " of new Delta " + maxDelta + " instead of old state " + state + " with utility " + utility + "; prob = " + probability + " > inertia =  " + inertia)
+        utility = maxDeltaUtility
         return maxDeltaState
       }
 

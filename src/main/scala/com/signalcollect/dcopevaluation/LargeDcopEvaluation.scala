@@ -38,7 +38,6 @@ import com.signalcollect.dcopgraphproviders._
 import com.signalcollect.StateForwarderEdge
 import com.signalcollect.approx.performance.GreedyExplorerVertexBuilder
 import com.signalcollect.approx.performance.LowMemoryExplorerVertexBuilder
-import com.signalcollect.approx.flood.DSAVariant
 
 //TODO replace anything you can with ints and arrays instead of lists
 //TODO function for Nash Equilibrium!
@@ -49,19 +48,19 @@ import com.signalcollect.approx.flood.DSAVariant
  *
  * Evaluation is set to execute on a 'Kraken'-node.
  */
-object DcopEvaluation extends App {
+object LargeDcopEvaluation extends App {
 
-  val evalName = "DSA fixed fixed"
+  val evalName = "scalability 36mil?"
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val kraken = new TorqueHost(
     jobSubmitter = new TorqueJobSubmitter(username = System.getProperty("user.name"), hostname = "kraken.ifi.uzh.ch"),
-    localJarPath = "./target/signal-collect-dcops-assembly-2.0.0-SNAPSHOT.jar", priority = TorquePriority.superfast)
+    localJarPath = "./target/signal-collect-dcops-assembly-2.0.0-SNAPSHOT.jar", priority = TorquePriority.fast)
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,
     executionHost =
-       new LocalHost 
-      //kraken
+      // new LocalHost 
+      kraken
       )
   val out = new java.io.FileWriter("results.txt")
 
@@ -69,18 +68,16 @@ object DcopEvaluation extends App {
   var startTime = System.nanoTime()
   val terminationCondition = new DSANGlobalTerminationCondition(out, outTime, startTime)
 
-  val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(420000)
-  val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(420000) //(36000000)
+  val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(3600000)
+  val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(3600000) //(36000000)
 
   val repetitions = 1
   val executionConfigurations = List(executionConfigAsync, executionConfigSync)
-  val graphSizes = List(10, 100)//, 1000, 3000)
+  val graphSizes = List(6000)//10, 100, 1000, 3000)
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-    new DSAVertexBuilder("first trial", DSAVariant.B, 0.5)
-      
-      //new LowMemoryExplorerVertexBuilder("Greedy expl")
+    new LowMemoryExplorerVertexBuilder("Greedy expl")
       //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
     //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
@@ -92,9 +89,9 @@ object DcopEvaluation extends App {
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(12, 10, 8, 6, 4)) {
+      for (numberOfColors <- List(16, 12, 10, 8)) {
         for (graphSize <- graphSizes) {
-          for (graphProvider <- /*googleGraphProviderList */ List(new ConstraintGridProvider(graphSize, graphSize, numberOfColors)/*, new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)*/))
+          for (graphProvider <- List(new ConstraintGridProvider(graphSize, graphSize, numberOfColors)))
             for (algorithm <- algorithmsList) {
               val graphBuilder = new GraphBuilder[Any, Any]()//.withConsole(true)
               fastEval.addJobForEvaluationAlgorithm(new DcopEvaluationRun(algorithm.toString, graphBuilder = graphBuilder, vertexBuilder = algorithm, edgeBuilder = (x: Int, y: Int) => new StateForwarderEdge(y), graphProvider = graphProvider, executionConfiguration = executionConfig, jvmParams = jvmParameters, reportMemoryStats = true))

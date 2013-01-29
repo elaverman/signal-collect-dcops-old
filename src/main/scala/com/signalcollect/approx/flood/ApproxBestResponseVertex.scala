@@ -6,7 +6,9 @@ import java.util.Random
 //import scala.Int
 //import collection.JavaConversions._
 
-trait ApproxBestResponseVertex[Id, Int] extends DataGraphVertex[Id, Int] {
+trait ApproxBestResponseVertex[Id, Int] extends Vertex[Id, Int] {
+
+  def lastSignalState: Option[Int]
 
   def neighbourConfig: Map[Any, Int]
 
@@ -24,7 +26,15 @@ trait ApproxBestResponseVertex[Id, Int] extends DataGraphVertex[Id, Int] {
    */
   def existsBetterStateUtility: Boolean
 
- 
+  def areAllLocalConstraintsSatisfied = utility == constraints.size
+
+  def isStateUnchanged = {
+    lastSignalState match {
+      case Some(oldState) => state == oldState
+      case None => false
+    }
+  }
+
   def computeMaxUtilityState(utilityFunction: Int => Double = computeUtility, possibleStates: Array[Int] = possibleValues): Int = { //TODO is this ok as a generalization?
     val utilities = possibleStates map (value => (value, utilityFunction(value)))
     val maxUtility = utilities map (_._2) max
@@ -36,29 +46,27 @@ trait ApproxBestResponseVertex[Id, Int] extends DataGraphVertex[Id, Int] {
 
   def computeIfBetterStatesExist(currentState: Int, utilityFunction: Int => Double = computeUtility): Boolean = {
     var maxState = computeMaxUtilityState(utilityFunction)
-    (utilityFunction(maxState) > utilityFunction(currentState))		
+    (utilityFunction(maxState) > utilityFunction(currentState))
     //(utilityFunction(maxState) >= utilityFunction(currentState))&&(maxState!=currentState)&&.... //for strict NE?	
   }
-  
-//  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double): Boolean = {
-//    var existsBetterThanCurrentStateUtility: Boolean = false
-//    var i: Int = 0
-//    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
-//      val candidateState = possibleValues(i)
-//      val possibleStatesConfig = neighbourConfig + (id -> candidateState)
-//      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfig))
-//      if ((candidateState != currentState) && (possibleStatesConfigsUtility > currentStateUtility)) // strict NE when >= TODO change back to >=
-//        existsBetterThanCurrentStateUtility = true
-//      i = i + 1
-//    }
-//    existsBetterThanCurrentStateUtility
-//  }
-  
-  
+
+  //  def computeIfBetterStatesExist(currentState: Int, currentStateUtility: Double): Boolean = {
+  //    var existsBetterThanCurrentStateUtility: Boolean = false
+  //    var i: Int = 0
+  //    while (!(existsBetterThanCurrentStateUtility) && (i < possibleValues.size)) {
+  //      val candidateState = possibleValues(i)
+  //      val possibleStatesConfig = neighbourConfig + (id -> candidateState)
+  //      val possibleStatesConfigsUtility = constraints.foldLeft(0.0)((a, b) => a + b.utility(possibleStatesConfig))
+  //      if ((candidateState != currentState) && (possibleStatesConfigsUtility > currentStateUtility)) // strict NE when >= TODO change back to >=
+  //        existsBetterThanCurrentStateUtility = true
+  //      i = i + 1
+  //    }
+  //    existsBetterThanCurrentStateUtility
+  //  }
 
   override def toString = {
     val stringResult = "Vertex ID: " + id + ", State: " + state + " Utility: " + utility + "/" + constraints.size +
-      "\n Edges: " + this.outgoingEdges.size + //values + 
+      "\n Edges: " + this.edgeCount + //values + 
       "\n Possible values: " + possibleValues.mkString("; ") +
       "\n Constraints: " + constraints.mkString("; ")
 

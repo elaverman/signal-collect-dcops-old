@@ -158,16 +158,9 @@ class DSANVertex(
     }
   }
 
-  def isStateUnchanged = {
-    lastSignalState match {
-      case Some(oldState) => state == oldState
-      case None => false
-    }
-  }
+
 
   def isFrozen = explorationProbability(time, maxDelta) < 0.000001
-
-  def areAllLocalConstraintsSatisfied = utility == constraints.size
 
   /**
    * When should it stop signaling?
@@ -190,8 +183,7 @@ class DSANVertex(
 class GlobalUtility extends AggregationOperation[(Int, Double)] {
   val neutralElement = (0, 0.0)
   def extract(v: Vertex[_, _]): (Int, Double) = v match {
-    case vertex: DSANVertex => (vertex.constraints.size, vertex.utility)
-    case vertex: JSFPIVertex => (vertex.constraints.size, vertex.utility)
+    case vertex: ApproxBestResponseVertex[_,_] => (vertex.edgeCount, vertex.utility)
     case other => neutralElement
   }
   def reduce(elements: Stream[(Int, Double)]) = elements.foldLeft(neutralElement)(aggregate)

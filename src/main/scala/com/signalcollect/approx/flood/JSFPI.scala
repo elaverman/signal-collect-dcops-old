@@ -130,27 +130,23 @@ class JSFPIVertex(
 
   } //end collect function
 
-  def isStateUnchanged = {
-    lastSignalState match {
-      case Some(oldState) => state == oldState
-      case None => false
-    }
-  }
   
 
-  override def scoreSignal: Double = {
-    lastSignalState match {
-      case Some(oldState) => //TODO: see if i would add that there are no other possibilities of moving into a same utility state
-        //        if (/*(oldState == state) &&*/ (!canBeImproved || (utility == constraints.size))) { //computation is allowed to stop only if state has not changed and the utility is maximized - TODO: utility maximized should be expressed differently
-        //          0                       //before it was numberSatisfied == constraints.size
-        //        } else {
-        1
-      //     }
-      case other => 1
+  override def scoreSignal: Double = 1
+  
+  //{
+//    lastSignalState match {
+//      case Some(oldState) => //TODO: see if i would add that there are no other possibilities of moving into a same utility state
+//        //        if (/*(oldState == state) &&*/ (!canBeImproved || (utility == constraints.size))) { //computation is allowed to stop only if state has not changed and the utility is maximized - TODO: utility maximized should be expressed differently
+//        //          0                       //before it was numberSatisfied == constraints.size
+//        //        } else {
+//        1
+//      //     }
+//      case other => 1
+//
+//    }
 
-    }
-
-  } //end scoreSignal
+ // } //end scoreSignal
 
 } //end JSFPIVertex class
 

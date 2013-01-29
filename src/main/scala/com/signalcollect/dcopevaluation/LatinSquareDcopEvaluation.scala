@@ -38,7 +38,6 @@ import com.signalcollect.dcopgraphproviders._
 import com.signalcollect.StateForwarderEdge
 import com.signalcollect.approx.performance.GreedyExplorerVertexBuilder
 import com.signalcollect.approx.performance.LowMemoryExplorerVertexBuilder
-import com.signalcollect.approx.flood.DSAVariant
 
 //TODO replace anything you can with ints and arrays instead of lists
 //TODO function for Nash Equilibrium!
@@ -49,9 +48,9 @@ import com.signalcollect.approx.flood.DSAVariant
  *
  * Evaluation is set to execute on a 'Kraken'-node.
  */
-object DcopEvaluation extends App {
+object LatinSquareDcopEvaluation extends App {
 
-  val evalName = "DSA fixed fixed"
+  val evalName = "10 mil low mem greedy explorer"
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val kraken = new TorqueHost(
@@ -60,8 +59,8 @@ object DcopEvaluation extends App {
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,
     executionHost =
-       new LocalHost 
-      //kraken
+      // new LocalHost 
+      kraken
       )
   val out = new java.io.FileWriter("results.txt")
 
@@ -74,27 +73,21 @@ object DcopEvaluation extends App {
 
   val repetitions = 1
   val executionConfigurations = List(executionConfigAsync, executionConfigSync)
-  val graphSizes = List(10, 100)//, 1000, 3000)
+  val graphSizes = List(3334)//10, 100, 1000, 3000)
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-    new DSAVertexBuilder("first trial", DSAVariant.B, 0.5)
-      
-      //new LowMemoryExplorerVertexBuilder("Greedy expl")
+    new LowMemoryExplorerVertexBuilder("Greedy expl")
       //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
     //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
 
-  val googleAlgorithmsList = List(
-    new GoogleDSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))))
-
-  val googleGraphProviderList = List(new ConstraintGoogleGraphLoader(8, edgeFilename = "web-Google.txt", directed = false))
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(12, 10, 8, 6, 4)) {
+      for (numberOfColors <- List(30, 20, 12, 10, 8, 6, 4)) {
         for (graphSize <- graphSizes) {
-          for (graphProvider <- /*googleGraphProviderList */ List(new ConstraintGridProvider(graphSize, graphSize, numberOfColors)/*, new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)*/))
+          for (graphProvider <- List(new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)))
             for (algorithm <- algorithmsList) {
               val graphBuilder = new GraphBuilder[Any, Any]()//.withConsole(true)
               fastEval.addJobForEvaluationAlgorithm(new DcopEvaluationRun(algorithm.toString, graphBuilder = graphBuilder, vertexBuilder = algorithm, edgeBuilder = (x: Int, y: Int) => new StateForwarderEdge(y), graphProvider = graphProvider, executionConfiguration = executionConfig, jvmParams = jvmParameters, reportMemoryStats = true))

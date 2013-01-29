@@ -1,8 +1,8 @@
 package com.signalcollect.approx.flood
 
 import scala.collection.immutable._
-//import scala.collection.mutable._
-//TODO: weird fact: if i make it immutable, then i get problems in dsa etc.
+import language.implicitConversions
+
 
 object ConstraintExample extends App {
 

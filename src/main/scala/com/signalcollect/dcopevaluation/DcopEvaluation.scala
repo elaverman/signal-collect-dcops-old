@@ -39,6 +39,7 @@ import com.signalcollect.StateForwarderEdge
 import com.signalcollect.approx.performance.GreedyExplorerVertexBuilder
 import com.signalcollect.approx.performance.LowMemoryExplorerVertexBuilder
 import com.signalcollect.approx.flood.DSAVariant
+import com.signalcollect.approx.performance.BalancedExplorerVertexBuilder
 
 //TODO replace anything you can with ints and arrays instead of lists
 //TODO function for Nash Equilibrium!
@@ -60,8 +61,8 @@ object DcopEvaluation extends App {
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,
     executionHost =
-       new LocalHost 
-      //kraken
+      // new LocalHost 
+      kraken
       )
   val out = new java.io.FileWriter("results.txt")
 
@@ -78,7 +79,8 @@ object DcopEvaluation extends App {
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-      new GreedyExplorerVertexBuilder("Greedy expl"),
+      new BalancedExplorerVertexBuilder("Balanced"),
+      new GreedyExplorerVertexBuilder("Greedy"),
       new DSAVertexBuilder("first trial", DSAVariant.B, 0.5),
     //new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
       

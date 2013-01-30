@@ -113,7 +113,7 @@ class ConstraintLatinSquareProvider(val width: Int = 10, height: Int = 10, numbe
 
 }
 
-class ConstraintGoogleGraphLoader(numberOfWorkers: Int, edgeFilename: String = "web-Google.txt", directed: Boolean = true, numberOfColors: Int = 4) extends ConstraintGraphProvider[Any, Any] {
+class ConstraintGoogleGraphLoader(numberOfWorkers: Int, edgeFilename: String = "web-Google.txt", directed: Boolean = true, numberOfColors: Int) extends ConstraintGraphProvider[Any, Any] {
 
   def populate(graphEditor: GraphEditor[Any, Any], constraintVertexBuilder: ConstraintVertexBuilder, constraintEdgeBuilder: (Int, Int) => Edge[Int]) {
     val domain = (0 until numberOfColors).toArray
@@ -143,7 +143,7 @@ class ConstraintGoogleGraphLoader(numberOfWorkers: Int, edgeFilename: String = "
 
   def domainSize = numberOfColors
 
-  def graphSize = 10
+  def graphSize = 875713
 
   override def toString = "GoogleFileGraphLoader" + edgeFilename
 

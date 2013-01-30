@@ -38,6 +38,7 @@ import com.signalcollect.dcopgraphproviders._
 import com.signalcollect.StateForwarderEdge
 import com.signalcollect.approx.performance.GreedyExplorerVertexBuilder
 import com.signalcollect.approx.performance.LowMemoryExplorerVertexBuilder
+import com.signalcollect.approx.performance.BalancedExplorerVertexBuilder
 
 //TODO replace anything you can with ints and arrays instead of lists
 //TODO function for Nash Equilibrium!
@@ -50,7 +51,7 @@ import com.signalcollect.approx.performance.LowMemoryExplorerVertexBuilder
  */
 object LatinSquareDcopEvaluation extends App {
 
-  val evalName = "10 mil low mem greedy explorer"
+  val evalName = "DSA and DSAN LatinSq"
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val kraken = new TorqueHost(
@@ -71,24 +72,22 @@ object LatinSquareDcopEvaluation extends App {
   val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(420000)
   val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(420000) //(36000000)
 
-  val repetitions = 1
+  val repetitions = 9
   val executionConfigurations = List(executionConfigAsync, executionConfigSync)
   val graphSizes = List(10)//, 100, 1000, 3000)
   val algorithmsList = List(
     //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
     // new JSFPIVertexBuilder("Weighted"),
-      new GreedyExplorerVertexBuilder("Greedy expl"),
-    new DSAVertexBuilder("first trial", DSAVariant.B, 0.5),
-    //new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
-      
-      new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
-    //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
+      new BalancedExplorerVertexBuilder("Balanced"),
+      new GreedyExplorerVertexBuilder("Greedy"),
+      new DSAVertexBuilder("first trial", DSAVariant.B, 0.5),
+      new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //, //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
 
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(20, 15, 10)/* (200, 150, 100)*/) {
+      for (numberOfColors <- List(20, 16, 12, 10)/* (200, 150, 100)*/) {
         for (graphSize <- graphSizes) {
           for (graphProvider <- List(new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)))
             for (algorithm <- algorithmsList) {

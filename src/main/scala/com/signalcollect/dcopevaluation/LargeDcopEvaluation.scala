@@ -85,7 +85,7 @@ object LargeDcopEvaluation extends App {
   val googleAlgorithmsList = List(
     new GoogleDSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))))
 
-  val googleGraphProviderList = List(new ConstraintGoogleGraphLoader(8, edgeFilename = "web-Google.txt", directed = false))
+ // val googleGraphProviderList = List(new ConstraintGoogleGraphLoader(8, edgeFilename = "web-Google.txt", directed = false))
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {

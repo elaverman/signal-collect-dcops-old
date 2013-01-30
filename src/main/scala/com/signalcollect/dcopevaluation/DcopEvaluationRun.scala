@@ -87,10 +87,27 @@ class DcopEvaluationRun(
             vertex.constraints = constraints
             //println("vertex "+vertex.id +" Constraints: "+constraints)
           }
-          case vertex: JSFPIVertex => println("This is not the vertex you are looking for " + vertex)
-          case other => println("This is not even a vertex " + other)
+          //case vertex: JSFPIVertex => println("This is not the vertex you are looking for " + vertex)
+          case other => println("not generating constraints for " + other)
         })
-      case other => graph
+      case vb: GoogleDSAVertexBuilder =>
+        graph.foreachVertex(v => v match {
+          case vertex: DSAVertex => {
+            val targetIds = vertex.outgoingEdges.keys
+           // println("In aggregation operation add ctr to DSANVertex " + vertex.id + " with " + vertex.edgeCount + " edges: " + targetIds)
+
+            var constraints: List[SimpleDiffConstraint] = List()
+            for (targetId <- targetIds) {
+              constraints = SimpleDiffConstraint(List(vertex.id, targetId.asInstanceOf[Int])) :: constraints
+
+            }
+            vertex.constraints = constraints
+            //println("vertex "+vertex.id +" Constraints: "+constraints)
+          }
+          //case vertex: JSFPIVertex => println("This is not the vertex you are looking for " + vertex)
+          case other => println("not generating constraints for " + other)
+        })  
+      case other => 
     }
 
     stats = graph.execute(executionConfiguration)

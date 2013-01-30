@@ -44,6 +44,8 @@ class GreedyExplorerVertexBuilder(algorithmDescription: String) extends Constrai
   override def toString = "BRfast - " + algorithmDescription
 }
 
+
+
 /**
  * 	This algorithm attempts to find a vertex coloring.
  * A valid vertex coloring is defined as an assignment of labels (colors)

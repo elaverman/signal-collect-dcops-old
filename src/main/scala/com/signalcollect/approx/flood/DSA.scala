@@ -67,6 +67,17 @@ class DSAVertexBuilder(algorithmDescription: String, variant: DSAVariant, inerti
   override def toString = "DSA-" + variant.toString() + " " + algorithmDescription
 }
 
+class GoogleDSAVertexBuilder(algorithmDescription: String, variant: DSAVariant, inertia: Double = 0.5) extends ConstraintVertexBuilder {
+  def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
+    val r = new Random
+    val v = new DSAVertex(id, domain(r.nextInt(domain.size)), constraints, domain, variant, inertia)
+    v
+  }
+
+  override def toString = "Google DSA - " + algorithmDescription
+}
+
+
 /**
  * Represents an Agent
  *

@@ -114,13 +114,13 @@ class JSFPIVertex(
     val probability: Double = (new Random).nextDouble()
 
     if ((probability > inertia) && (candidateState != state)) { // we adopt the new maximum state, else we do not change state
-      println("Vertex: " + id + "; changed to state: " + candidateState + " of new WAU/utility " + weightedAvgUtilities(candidateState) + "/" + computeUtility(candidateState) + " instead of old state " + state + " with WAU/utility " + weightedAvgUtilities(state) + "/" + computeUtility(state) + "; prob = " + probability + " > inertia =  " + inertia)
+      //println("Vertex: " + id + "; changed to state: " + candidateState + " of new WAU/utility " + weightedAvgUtilities(candidateState) + "/" + computeUtility(candidateState) + " instead of old state " + state + " with WAU/utility " + weightedAvgUtilities(state) + "/" + computeUtility(state) + "; prob = " + probability + " > inertia =  " + inertia)
       existsBetterStateUtility = false
       utility = computeUtility(candidateState)
       return candidateState
     } else {
-      if (candidateState != state)
-        println("Vertex: " + id + "; NOT changed to state: " + candidateState + " of new WAU/utility " + weightedAvgUtilities(candidateState) + "/" + computeUtility(candidateState) + " instead of old state " + state + " with WAU/utility " + weightedAvgUtilities(state) + "/" + computeUtility(state) +  "; prob = " + probability + " < inertia =  " + inertia)
+      //if (candidateState != state)
+        //println("Vertex: " + id + "; NOT changed to state: " + candidateState + " of new WAU/utility " + weightedAvgUtilities(candidateState) + "/" + computeUtility(candidateState) + " instead of old state " + state + " with WAU/utility " + weightedAvgUtilities(state) + "/" + computeUtility(state) +  "; prob = " + probability + " < inertia =  " + inertia)
       return state
     }
 
@@ -151,7 +151,7 @@ object JSFPI extends App {
 
   val graph = GraphBuilder.withLoggingLevel(LoggingLevel.Debug).build
 
-  println("From client: Graph built")
+  //println("From client: Graph built")
 
   //Simple graph with 2 vertices
 
@@ -191,10 +191,10 @@ object JSFPI extends App {
     }
   }
 
-  println("Begin")
+  //println("Begin")
 
   val stats = graph.execute(ExecutionConfiguration().withExecutionMode(ExecutionMode.Synchronous))
-  println(stats)
-  graph.foreachVertex(println(_))
+  //println(stats)
+  //graph.foreachVertex(println(_))
   graph.shutdown
 }

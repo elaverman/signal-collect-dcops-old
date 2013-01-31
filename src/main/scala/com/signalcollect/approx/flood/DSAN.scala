@@ -180,7 +180,7 @@ class DSANVertex(
   }
 }
 
-class GlobalUtility extends AggregationOperation[(Int, Double)] {
+class GlobalUtility extends AggregationOperation[(Int, Double)] with Serializable {
   val neutralElement = (0, 0.0)
   def extract(v: Vertex[_, _]): (Int, Double) = v match {
     case vertex: ApproxBestResponseVertex[_,_] => (vertex.edgeCount, vertex.utility)
@@ -204,17 +204,18 @@ class NashEquilibrium extends AggregationOperation[Boolean] {
 }
 
 class DSANGlobalTerminationCondition(
-  f: java.io.FileWriter,
-  g: java.io.FileWriter,
+  /*f: java.io.FileWriter,
+  g: java.io.FileWriter,*/
   startTime: Long,
-  aggregationOperation: AggregationOperation[(Int, Double)] = new GlobalUtility,
-  aggregationInterval: Long = 5l) extends GlobalTerminationCondition[(Int, Double)](aggregationOperation, aggregationInterval) {
+  aggregationOperation: AggregationOperation[(Int, Double)],
+  aggregationInterval: Long) extends GlobalTerminationCondition[(Int, Double)](aggregationOperation, aggregationInterval)
+  with Serializable {
   def shouldTerminate(aggregate: (Int, Double)): Boolean = {
     if (aggregate._1 - aggregate._2 < 0.001) true
     else {
-      f.write(aggregate._1 - aggregate._2 + " ")
-      g.write((System.nanoTime() - startTime).toString + " ")
-      print(aggregate._1 - aggregate._2 + " " + (System.nanoTime() - startTime).toString + "; ")
+//      f.write(aggregate._1 - aggregate._2 + " ")
+//      g.write((System.nanoTime() - startTime).toString + " ")
+//      print(aggregate._1 - aggregate._2 + " " + (System.nanoTime() - startTime).toString + "; ")
 
       false
     }

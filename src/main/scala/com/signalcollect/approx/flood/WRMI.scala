@@ -143,10 +143,10 @@ class WRMIVertex(
 
     if ((acceptanceProbability > inertia) && (candidateState != state)) { // we adopt the new maximum state, else we do not change state
     //  if (id==50)
-      println("Vertex: " + id + "; changed to state: " + 
-          candidateState+"verif index:"+(possibleValues(candidateState)) + " of regret/utility " + stateRegret(candidateState) + "/" + computeUtility(candidateState) + 
-          " instead of old state " + state + " with utility " + utility + "; prob = " + acceptanceProbability + " > inertia =  " + inertia
-          +"\n "+weightedAvgDiff.mkString("; ")+"\n"+stateRegret.mkString("; "))
+    //  println("Vertex: " + id + "; changed to state: " + 
+   //       candidateState+"verif index:"+(possibleValues(candidateState)) + " of regret/utility " + stateRegret(candidateState) + "/" + computeUtility(candidateState) + 
+    //      " instead of old state " + state + " with utility " + utility + "; prob = " + acceptanceProbability + " > inertia =  " + inertia
+    //      +"\n "+weightedAvgDiff.mkString("; ")+"\n"+stateRegret.mkString("; "))
       utility = computeUtility(candidateState)
       existsBetterStateUtility = maxUtility > utility //||((maxUtility==utility)&&(maximumsCount != 1)) //for strict NE. only STRICT NE are absorbing!
       return candidateState
@@ -158,21 +158,21 @@ class WRMIVertex(
   } //end collect function
 
   
- // override def scoreSignal: Double = 1
+  override def scoreSignal: Double = 1
   
-  override def scoreSignal: Double = {
-    lastSignalState match {
-      case Some(oldState) =>
-        if ((oldState == state) && ((utility == constraints.size)||(normFactor == 0))) { //computation is allowed to stop only if state has not changed and the utility is maximized
-          0
-        } else {
-          1
-        }
-      case other => 1
-
-    }
-
-  } //end scoreSignal
+//  override def scoreSignal: Double = {
+//    lastSignalState match {
+//      case Some(oldState) =>
+//        if ((oldState == state) && ((utility == constraints.size)||(normFactor == 0))) { //computation is allowed to stop only if state has not changed and the utility is maximized
+//          0
+//        } else {
+//          1
+//        }
+//      case other => 1
+//
+//    }
+//
+//  } //end scoreSignal
 
 } //end WRMIVertex class
 
@@ -181,7 +181,7 @@ object WRMI extends App {
 
   val graph = GraphBuilder.withLoggingLevel(LoggingLevel.Debug).build
 
-  println("From client: Graph built")
+  //("From client: Graph built")
 
   //Simple graph with 2 vertices
 
@@ -219,10 +219,10 @@ object WRMI extends App {
     }
   }
 
-  println("Begin")
+  //println("Begin")
 
   val stats = graph.execute(ExecutionConfiguration().withExecutionMode(ExecutionMode.Synchronous))
-  println(stats)
-  graph.foreachVertex(println(_))
+  //println(stats)
+  //graph.foreachVertex(println(_))
   graph.shutdown
 }

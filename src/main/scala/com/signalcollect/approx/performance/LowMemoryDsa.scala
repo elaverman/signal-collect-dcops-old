@@ -37,15 +37,15 @@ class LowMemoryDsaVertexBuilder(algorithmDescription: String) extends Constraint
   def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
     val r = new Random
     val colors: Set[Byte] = (0 until domain.size).toSet map ((color: Int) => color.asInstanceOf[Byte])
-    val v = new LowMemoryExplorer(id, domain.size.asInstanceOf[Byte], domain(r.nextInt(domain.size)).asInstanceOf[Byte])
+    val v = new LowMemoryDsa(id, domain.size.asInstanceOf[Byte], domain(r.nextInt(domain.size)).asInstanceOf[Byte])
     val targetIdArray = ((constraints flatMap (_.variablesList filter (_ != id))).toSet.asInstanceOf[Set[Int]]).toArray[Int]
-    v.setTargetIdArray(CompactIntSet.create(targetIdArray))
+    val compact = CompactIntSet.create(targetIdArray)
+    v.setTargetIdArray(compact)
     v
   }
 
   override def toString = "LowMemoryDsa - " + algorithmDescription
 }
-
 
 class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex[Int, Byte] {
 
@@ -61,6 +61,7 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
 
   override def addEdge(e: Edge[_], graphEditor: GraphEditor[Any, Any]): Boolean = {
     throw new Exception("Adding edges is not currently supported, but easy to implement.")
+    false
   }
 
   def setTargetIdArray(links: Array[Byte]) = targetIdArray = links
@@ -83,16 +84,16 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
 
   def scoreCollect = 1
 
-  def edgeCount = {
-    var size = 0
-    CompactIntSet.foreach(targetIdArray, { targetId => size += 1 })
-    size
+  override def edgeCount = {
+    var noEdges = 0
+    CompactIntSet.foreach(targetIdArray, { targetId => noEdges += 1 })
+    noEdges
   }
 
   var currentConflicts = Int.MaxValue
 
   def utility = edgeCount - currentConflicts
-  
+
   def existsBetterStateUtility: Boolean = {
     val stateCostTable = new Array[Int](numColors)
     val signalIterator = mostRecentSignalMap.values.iterator
@@ -113,9 +114,9 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
       i += 1
     }
     val currentConflictCount = stateCostTable(state)
-    currentConflictCount == leastConflicts 
+    currentConflictCount == leastConflicts
   }
-  
+
   def afterInitialization(graphEditor: GraphEditor[Any, Any]) = {}
   def beforeRemoval(graphEditor: GraphEditor[Any, Any]) = {}
 
@@ -149,7 +150,6 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
       }
       i += 1
     }
-    //val numberSatisfied = edgeCount - stateCostTable(state)
     currentConflicts = stateCostTable(state)
     val maxDelta = currentConflicts - leastConflicts
     val probability = Random.nextDouble
@@ -170,7 +170,6 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
         i += 1
       }
       throw new Exception("This case should be impossible")
-      return -1.asInstanceOf[Byte]
     }
     state
   }

@@ -156,6 +156,6 @@ object DcopEvaluation extends App {
 //    }
 //  }
 
-  fastEval.setResultHandlers(List(new ConsoleResultHandler(true), new GoogleDocsResultHandler(args(0), args(1), "evaluation_ela", "data")))
+  //fastEval.setResultHandlers(List(new ConsoleResultHandler(true), new GoogleDocsResultHandler(args(0), args(1), "evaluation_ela", "data")))
   fastEval.runEvaluation
 }

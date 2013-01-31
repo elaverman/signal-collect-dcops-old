@@ -27,10 +27,10 @@ import scala.collection.mutable.ArrayBuffer
 import com.signalcollect.interfaces._
 import scala.collection.mutable.HashMap
 import com.signalcollect.graphproviders.synthetic.Chain
-import scala.collection.mutable.OpenHashMap
 import com.signalcollect.approx.flood.Constraint
 import com.signalcollect.approx.flood.ConstraintVertexBuilder
 import com.signalcollect.evaluation.algorithms.CompactIntSet
+import collection.JavaConversions._
 
 class LowMemoryExplorerVertexBuilder(algorithmDescription: String) extends ConstraintVertexBuilder {
   def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
@@ -80,7 +80,7 @@ class LowMemoryExplorer(val id: Int, numColors: Byte, var state: Byte) extends V
     lastSignalState = state
   }
 
-  protected val mostRecentSignalMap = new OpenHashMap[Int, Byte](1)
+  protected val mostRecentSignalMap = new java.util.HashMap[Int, Byte](1)
 
   def deliverSignal(signal: Any, sourceId: Option[Any]): Boolean = {
     mostRecentSignalMap.put(sourceId.get.asInstanceOf[Int], signal.asInstanceOf[Byte])

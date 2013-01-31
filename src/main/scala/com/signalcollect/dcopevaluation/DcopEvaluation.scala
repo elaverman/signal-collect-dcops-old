@@ -40,6 +40,7 @@ import com.signalcollect.approx.performance.GreedyExplorerVertexBuilder
 import com.signalcollect.approx.performance.LowMemoryExplorerVertexBuilder
 import com.signalcollect.approx.flood.DSAVariant
 import com.signalcollect.approx.performance.BalancedExplorerVertexBuilder
+import com.signalcollect.approx.performance.LowMemoryDsaVertexBuilder
 
 //TODO replace anything you can with ints and arrays instead of lists
 //TODO function for Nash Equilibrium!
@@ -52,7 +53,7 @@ import com.signalcollect.approx.performance.BalancedExplorerVertexBuilder
  */
 object DcopEvaluation extends App {
 
-  val evalName = "grid DSA scaling" //"DSAN and DSA grid"
+  val evalName = "efficient exploration test"//"grid DSA scaling" //"DSAN and DSA grid"
   val jvmParameters = "-Xmx64000m -XX:+UseNUMA -XX:+UseCondCardMark -XX:+UseParallelGC"
 
   val kraken = new TorqueHost(
@@ -61,8 +62,8 @@ object DcopEvaluation extends App {
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,
     executionHost =
-      // new LocalHost 
-      kraken
+       new LocalHost 
+      //kraken
       )
   val out = new java.io.FileWriter("results.txt")
 
@@ -72,15 +73,15 @@ object DcopEvaluation extends App {
   val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01).withTimeLimit(3600000)
 
 
-  val repetitions = 10
+  val repetitions = 1
   val executionConfigurations = List(executionConfigAsync)
-  val graphSizes = List(10, 32, 100, 317, 1000, 3163)
+  val graphSizes = List(10)//, 32, 100, 317, 1000, 3163)
   val algorithmsList = List(
     // new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5),
     // new JSFPIVertexBuilder("Weighted"),
      // new BalancedExplorerVertexBuilder("Balanced"),
       //new GreedyExplorerVertexBuilder("Greedy"),
-     new DSAVertexBuilder("final", DSAVariant.B, 0.5)
+     new LowMemoryDsaVertexBuilder("final")
     //new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
       
      // new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //,
@@ -91,7 +92,7 @@ object DcopEvaluation extends App {
   
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(8)) {
+      for (numberOfColors <- List(8,  6, 4)) {
         for (graphSize <- graphSizes) {
           for (graphProvider <- /*googleGraphProviderList */ List(new ConstraintGridProvider(graphSize, graphSize, numberOfColors)/*, new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)*/))
             for (algorithm <- algorithmsList) {

@@ -46,18 +46,7 @@ class LowMemoryDsaVertexBuilder(algorithmDescription: String) extends Constraint
   override def toString = "LowMemoryDsa - " + algorithmDescription
 }
 
-/**
- * 	This algorithm attempts to find a vertex coloring.
- * A valid vertex coloring is defined as an assignment of labels (colors)
- * 	to vertices such that no two vertices that share an edge have the same label.
- *
- * Usage restriction: this implementation *ONLY* works on *UNDIRECTED* graphs.
- * In Signal/Collect this means that there is either no edge between 2 vertices
- * or one in each direction.
- *
- * @param id: the vertex id
- * @param numColors: the number of colors (labels) used to color the graph, from 0 to numColors-1
- */
+
 class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex[Int, Byte] {
 
   type Signal = Byte
@@ -102,6 +91,31 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
 
   var currentConflicts = Int.MaxValue
 
+  def utility = edgeCount - currentConflicts
+  
+  def existsBetterStateUtility: Boolean = {
+    val stateCostTable = new Array[Int](numColors)
+    val signalIterator = mostRecentSignalMap.values.iterator
+    while (signalIterator.hasNext) {
+      val color = signalIterator.next
+      stateCostTable(color) += 1
+    }
+    var i = 0
+    var leastConflicts = Int.MaxValue
+    var leastConflictsCount = 0 // How many states would produce this least number of conflicts.
+    while (i < stateCostTable.length) {
+      if (stateCostTable(i) == leastConflicts) {
+        leastConflictsCount += 1
+      } else if (stateCostTable(i) < leastConflicts) {
+        leastConflicts = stateCostTable(i)
+        leastConflictsCount = 1
+      }
+      i += 1
+    }
+    val currentConflictCount = stateCostTable(state)
+    currentConflictCount == leastConflicts 
+  }
+  
   def afterInitialization(graphEditor: GraphEditor[Any, Any]) = {}
   def beforeRemoval(graphEditor: GraphEditor[Any, Any]) = {}
 
@@ -116,11 +130,6 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
   /** Returns a random color */
   def getRandomColor: Byte = Random.nextInt(numColors).asInstanceOf[Byte]
 
-  /**
-   * Checks if one of the neighbors shares the same color. If so, the state is
-   *  set to a random color and the neighbors are informed about this vertex'
-   *  new color. If no neighbor shares the same color, we stay with the old color.
-   */
   def collect: Byte = {
     val stateCostTable = new Array[Int](numColors)
     val signalIterator = mostRecentSignalMap.values.iterator
@@ -152,6 +161,7 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
       while (i < numColors) {
         if (stateCostTable(i) == leastConflicts) {
           if (returnIndex == currentLeastConflictIndex) {
+            currentConflicts = leastConflicts
             return i.asInstanceOf[Byte]
           } else {
             currentLeastConflictIndex += 1

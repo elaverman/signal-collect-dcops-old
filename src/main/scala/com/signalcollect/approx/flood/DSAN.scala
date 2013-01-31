@@ -36,6 +36,7 @@ import com.signalcollect.interfaces.AggregationOperation
 import java.io.File
 import java.util.Random
 import collection.JavaConversions._
+import com.signalcollect.approx.performance.LowMemoryDsa
 /**
  * Represents an Agent
  *
@@ -184,6 +185,7 @@ class GlobalUtility extends AggregationOperation[(Int, Double)] with Serializabl
   val neutralElement = (0, 0.0)
   def extract(v: Vertex[_, _]): (Int, Double) = v match {
     case vertex: ApproxBestResponseVertex[_,_] => (vertex.edgeCount, vertex.utility)
+    case vertex: LowMemoryDsa =>  (vertex.edgeCount, vertex.utility)
     case other => neutralElement
   }
   def reduce(elements: Stream[(Int, Double)]) = elements.foldLeft(neutralElement)(aggregate)
@@ -194,6 +196,7 @@ class NashEquilibrium extends AggregationOperation[Boolean] {
   val neutralElement = true
   def extract(v: Vertex[_, _]): Boolean = v match {
     case vertex: ApproxBestResponseVertex[_, _] => !vertex.existsBetterStateUtility
+    case vertex: LowMemoryDsa => !vertex.existsBetterStateUtility
     case other => {
       //throw new Exception("No ApproxBestResponseVertex")
       neutralElement

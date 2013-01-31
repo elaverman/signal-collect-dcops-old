@@ -68,7 +68,7 @@ object GoogleDcopEvaluation extends App {
 
   val outTime = new java.io.FileWriter("resultsTime.txt")
   var startTime = System.nanoTime()
-  val terminationCondition = new DSANGlobalTerminationCondition(out, outTime, startTime)
+   val terminationCondition = new DSANGlobalTerminationCondition(/*out, outTime,*/ startTime, aggregationOperation = new GlobalUtility, aggregationInterval = 5l)
 
   val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(420000)
   val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(420000) //(36000000)
@@ -77,15 +77,15 @@ object GoogleDcopEvaluation extends App {
   val executionConfigurations = List(executionConfigAsync/*, executionConfigSync*/)
 
   val googleAlgorithmsList = List(
-    new GoogleDSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000)))
+   // new GoogleDSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000)))
     //new GoogleDSAVertexBuilder("DSA- inertia0.5", variant = DSAVariant.B, inertia = 0.5),
     //new BalancedExplorerVertexBuilder("Balanced"),
-    //new GreedyExplorerVertexBuilder("Greedy")
+    new GreedyExplorerVertexBuilder("Greedy")
     )
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(50/*, 20, 15, 10, 5*/)) {
+      for (numberOfColors <- List(100000/*, 20, 15, 10, 5*/)) {
         for (graphProvider <- List(new ConstraintGoogleGraphLoader(8, edgeFilename = "web-Google.txt", directed = false, numberOfColors = numberOfColors))) {
           for (algorithm <- googleAlgorithmsList) {
             val graphBuilder = new GraphBuilder[Any, Any]() //.withConsole(true)

@@ -60,34 +60,35 @@ object LatinSquareDcopEvaluation extends App {
 
   val fastEval = new EvaluationSuiteCreator(evaluationName = evalName,
     executionHost =
-      // new LocalHost 
-      kraken
+      //new LocalHost 
+       kraken
       )
   val out = new java.io.FileWriter("results.txt")
 
   val outTime = new java.io.FileWriter("resultsTime.txt")
   var startTime = System.nanoTime()
-  val terminationCondition = new DSANGlobalTerminationCondition(out, outTime, startTime)
+   val terminationCondition = new DSANGlobalTerminationCondition(/*out, outTime,*/ startTime, aggregationOperation = new GlobalUtility, aggregationInterval = 5l)
 
-  val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01) /*.withGlobalTerminationCondition(terminationCondition)*/ .withTimeLimit(420000)
-  val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withTimeLimit(420000) //(36000000)
+  val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01).withGlobalTerminationCondition(terminationCondition).withTimeLimit(420000)
+  val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withGlobalTerminationCondition(terminationCondition).withTimeLimit(420000) //(36000000)
 
-  val repetitions = 9
-  val executionConfigurations = List(executionConfigAsync, executionConfigSync)
-  val graphSizes = List(10)//, 100, 1000, 3000)
+  val repetitions = 10
+  val executionConfigurations = List(executionConfigAsync/*, executionConfigSync*/)
+  val graphSizes = List(100)//, 100)//, 100, 1000, 3000)
   val algorithmsList = List(
-    //  new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5)
+      new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5),
     // new JSFPIVertexBuilder("Weighted"),
-      new BalancedExplorerVertexBuilder("Balanced"),
-      new GreedyExplorerVertexBuilder("Greedy"),
-      new DSAVertexBuilder("first trial", DSAVariant.B, 0.5),
-      new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //, //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
+      //new BalancedExplorerVertexBuilder("Balanced"),
+      //new GreedyExplorerVertexBuilder("Greedy"),
+      new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
+      //new DSAVertexBuilder("final", DSAVariant.B, 0.5)
+      //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //, //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
 
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(20, 16, 12, 10)/* (200, 150, 100)*/) {
+      for (numberOfColors <- List(/*106, 105, 104, 103, 102 , */16, 12, 11, 10)) {
         for (graphSize <- graphSizes) {
           for (graphProvider <- List(new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)))
             for (algorithm <- algorithmsList) {

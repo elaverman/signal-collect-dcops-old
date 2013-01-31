@@ -180,19 +180,30 @@ class DSAVertex(
     return state
   } //end collect function
 
-  override def scoreSignal: Double = {
-    lastSignalState match {
-      case Some(oldState) =>
-        if ((oldState == state) && (maxDelta <= 0) /*(numberSatisfied == constraints.size)*/ ) { //computation is allowed to stop only if state has not changed and the utility is maximized
+  
+    override def scoreSignal: Double = {
+    if ((isStateUnchanged)&&(areAllLocalConstraintsSatisfied)) {
+          // This vertex is happy, no need to signal.
           0
         } else {
+          // Things could still be better, let's signal.
           1
         }
-      case other => 1
+  }
+  
+//  override def scoreSignal: Double = {
+//    lastSignalState match {
+//      case Some(oldState) =>
+//        if ((oldState == state) && (maxDelta <= 0) /*(numberSatisfied == constraints.size)*/ ) { //computation is allowed to stop only if state has not changed and the utility is maximized
+//          0
+//        } else {
+//          1
+//        }
+//      case other => 1
+//
+//    }
 
-    }
-
-  } //end scoreSignal
+//  } //end scoreSignal
 
 } //end DSAVertex class
 

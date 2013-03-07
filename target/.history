@@ -30,3 +30,9 @@ eclipse
 compile
 eclipse
 assembly
+help
+help package
+help
+help assembly
+help publish
+exit

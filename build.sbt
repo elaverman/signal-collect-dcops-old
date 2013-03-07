@@ -1,5 +1,5 @@
 import AssemblyKeys._ 
-assemblySettings
+seq(assemblySettings: _*) 
 
 /** Project */
 name := "signal-collect-dcops"

@@ -114,7 +114,7 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
       i += 1
     }
     val currentConflictCount = stateCostTable(state)
-    currentConflictCount == leastConflicts
+    currentConflictCount != leastConflicts
   }
 
   def afterInitialization(graphEditor: GraphEditor[Any, Any]) = {}

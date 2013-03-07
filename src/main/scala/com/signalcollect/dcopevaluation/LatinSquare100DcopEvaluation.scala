@@ -70,25 +70,25 @@ object LatinSquare100DcopEvaluation extends App {
   var startTime = System.nanoTime()
    val terminationCondition = new DSANGlobalTerminationCondition(/*out, outTime,*/ startTime, aggregationOperation = new GlobalUtility, aggregationInterval = 5l)
 
-   val executionConfigSync = ExecutionConfiguration(ExecutionMode.Synchronous).withSignalThreshold(0.01).withGlobalTerminationCondition(terminationCondition).withTimeLimit(420000) //(36000000)
+   val executionConfigAsync = ExecutionConfiguration(ExecutionMode.PureAsynchronous).withSignalThreshold(0.01).withGlobalTerminationCondition(terminationCondition).withTimeLimit(420000) //(36000000)
 
-  val repetitions = 10
-  val executionConfigurations = List( executionConfigSync)
-  val graphSizes = List(100)//, 100)//, 100, 1000, 3000)
+  val repetitions = 1
+  val executionConfigurations = List( executionConfigAsync)
+  val graphSizes = List(1000)//, 100)//, 100, 1000, 3000)
   val algorithmsList = List(
-      new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5),
+     // new JSFPIVertexBuilder("Weighted rho=0.5", fadingMemory = 0.5),
     // new JSFPIVertexBuilder("Weighted"),
       //new BalancedExplorerVertexBuilder("Balanced"),
       //new GreedyExplorerVertexBuilder("Greedy"),
-      new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5)
-      //new DSAVertexBuilder("final", DSAVariant.B, 0.5)
-      //new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //, //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
+      //new WRMIVertexBuilder("first trial fm=0.5", fadingMemory = 0.5),
+      new DSAVertexBuilder("final", DSAVariant.B, 0.5)
+     // new DSANVertexBuilder("ela-special", ((time, delta) => if (delta * delta <= 0.01) 0.001 else math.exp(delta * time * time / 1000))) //, //new DSANVertexBuilder(" - 0.001 exploration", (time, delta) => 0.001)
     )
 
 
   for (i <- 0 until repetitions) {
     for (executionConfig <- executionConfigurations) {
-      for (numberOfColors <- List(106, 105, 104, 103, 102)) {
+      for (numberOfColors <- List(2000)) {
         for (graphSize <- graphSizes) {
           for (graphProvider <- List(new ConstraintLatinSquareProvider(graphSize, graphSize, numberOfColors)))
             for (algorithm <- algorithmsList) {

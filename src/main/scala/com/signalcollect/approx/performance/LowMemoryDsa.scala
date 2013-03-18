@@ -74,15 +74,18 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
   protected val mostRecentSignalMap = new java.util.HashMap[Int, Byte](4)
 
   def deliverSignal(signal: Any, sourceId: Option[Any]): Boolean = {
+    uncollectedSignals = true
     mostRecentSignalMap.put(sourceId.get.asInstanceOf[Int], signal.asInstanceOf[Byte])
     false
   }
+
+  var uncollectedSignals = false
 
   override def executeCollectOperation(graphEditor: GraphEditor[Any, Any]) {
     state = collect
   }
 
-  def scoreCollect = 1
+  def scoreCollect = if (uncollectedSignals) 1 else 0
 
   override def edgeCount = {
     var noEdges = 0
@@ -132,6 +135,7 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
   def getRandomColor: Byte = Random.nextInt(numColors).asInstanceOf[Byte]
 
   def collect: Byte = {
+    uncollectedSignals = false
     val stateCostTable = new Array[Int](numColors)
     val signalIterator = mostRecentSignalMap.values.iterator
     while (signalIterator.hasNext) {
@@ -153,8 +157,12 @@ class LowMemoryDsa(val id: Int, numColors: Byte, var state: Byte) extends Vertex
     currentConflicts = stateCostTable(state)
     val maxDelta = currentConflicts - leastConflicts
     val probability = Random.nextDouble
-    val inertia = 0.5
-    if (((maxDelta > 0) || ((maxDelta == 0) && (currentConflicts > 0))) && (probability > inertia)) {
+    //val inertia = 0.5
+    if ((maxDelta == 0) && (currentConflicts > 0) && (probability > 0.99)) { //we added that maxDelta ==0
+      val newColor = Random.nextInt(numColors).asInstanceOf[Byte]
+      currentConflicts = stateCostTable(newColor)
+      return newColor
+    } else if (((maxDelta > 0) || ((maxDelta == 0) && (currentConflicts > 0)))) {
       val returnIndex = Random.nextInt(leastConflictsCount)
       var currentLeastConflictIndex = 0
       i = 0

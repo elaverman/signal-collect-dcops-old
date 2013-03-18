@@ -35,7 +35,7 @@ class GreedyExplorerVertexBuilder(algorithmDescription: String) extends Constrai
   def apply(id: Int, constraints: Iterable[Constraint], domain: Array[Int]): Vertex[Any, _] = {
     val r = new Random
     val colors: Set[Byte] = (0 until domain.size).toSet map ((color: Int) => color.asInstanceOf[Byte])
-    val v = new GreedyExplorer(id, colors, domain(r.nextInt(domain.size)).asInstanceOf[Byte])
+    val v = new GreedyExplorer(id, colors, 0 /*domain(r.nextInt(domain.size)).asInstanceOf[Byte]*/)
     val targetIdArray = ((constraints flatMap (_.variablesList filter (_ != id))).toSet.asInstanceOf[Set[Int]]).toArray[Int]
     v.setTargetIdArray(targetIdArray)
     v

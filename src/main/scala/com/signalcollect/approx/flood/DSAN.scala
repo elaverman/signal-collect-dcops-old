@@ -37,6 +37,11 @@ import java.io.File
 import java.util.Random
 import collection.JavaConversions._
 import com.signalcollect.approx.performance.LowMemoryDsa
+import com.signalcollect.interfaces.ComplexAggregation
+import scala.reflect.ClassTag
+import scala.collection.mutable.PriorityQueue
+import scala.util.Sorting
+import com.signalcollect.approx.performance.GreedyExplorer
 /**
  * Represents an Agent
  *
@@ -100,7 +105,6 @@ class DSANVertex(
   var utility: Double = 0
   var existsBetterStateUtility = false
 
-
   def computeUtility(ownConfig: Int): Double = {
     //Calculate utility and number of satisfied constraints for the current value
     val config = neighbourConfig + (id -> ownConfig)
@@ -119,12 +123,12 @@ class DSANVertex(
   def collect: Int = {
     neighbourConfig = mostRecentSignalMap.map(x => (x._1, x._2)).toMap
     time += 1
-    utility = computeUtility(state) 
+    utility = computeUtility(state)
 
     //Calculate utility and number of satisfied constraints for the new value
 
     val newState = getRandomState
-    val newStateUtility = computeUtility(newState) 
+    val newStateUtility = computeUtility(newState)
 
     // Delta is the difference between the utility of the new randomly selected state and the utility of the old state. 
     // It is > 0 if the new state would lead to improvements
@@ -159,8 +163,6 @@ class DSANVertex(
     }
   }
 
-
-
   def isFrozen = explorationProbability(time, maxDelta) < 0.000001
 
   /**
@@ -171,26 +173,112 @@ class DSANVertex(
    * (when it has satisfied all the local constraints)
    */
   override def scoreSignal: Double = {
-    if ((isStateUnchanged)&&(areAllLocalConstraintsSatisfied)) {
-          // This vertex is happy, no need to signal.
-          0
-        } else {
-          // Things could still be better, let's signal.
-          1
-        }
+    if ((isStateUnchanged) && (areAllLocalConstraintsSatisfied)) {
+      // This vertex is happy, no need to signal.
+      0
+    } else {
+      // Things could still be better, let's signal.
+      1
+    }
   }
 }
 
-class GlobalUtility extends AggregationOperation[(Int, Double)] with Serializable {
+case class GlobalUtility extends AggregationOperation[(Int, Double)] {
   val neutralElement = (0, 0.0)
   def extract(v: Vertex[_, _]): (Int, Double) = v match {
-    case vertex: ApproxBestResponseVertex[_,_] => (vertex.edgeCount, vertex.utility)
-    case vertex: LowMemoryDsa =>  (vertex.edgeCount, vertex.utility)
+    case vertex: ApproxBestResponseVertex[_, _] => (vertex.edgeCount, vertex.utility)
+    case vertex: LowMemoryDsa => (vertex.edgeCount, vertex.utility)
     case other => neutralElement
   }
   def reduce(elements: Stream[(Int, Double)]) = elements.foldLeft(neutralElement)(aggregate)
   def aggregate(a: (Int, Double), b: (Int, Double)): (Int, Double) = (a._1 + b._1, a._2 + b._2)
 }
+
+case class GlobalUtilityPrint extends AggregationOperation[(Boolean, List[(Int, Int)])] {
+  val neutralElement: (Boolean, List[(Int, Int)]) = (true, List())
+  def extract(v: Vertex[_, _]): ((Boolean, List[(Int, Int)])) = v match {
+    case vertex: ApproxBestResponseVertex[Int, Int] => (vertex.scoreSignal == 0 && vertex.scoreCollect == 0, List((vertex.id, vertex.state)))
+    case vertex: GreedyExplorer => (vertex.scoreSignal == 0 && vertex.scoreCollect == 0, List((vertex.id, vertex.state)))
+    case vertex: LowMemoryDsa => (vertex.currentConflicts == 0, List((vertex.id, vertex.state)))
+    case other => neutralElement
+  }
+  def reduce(elements: Stream[(Boolean, List[(Int, Int)])]) = {
+    elements.foldLeft(neutralElement)(aggregate)
+  }
+
+  def aggregate(a: (Boolean, List[(Int, Int)]), b: (Boolean, List[(Int, Int)])) = (a._1 && b._1, a._2 ++ b._2)
+}
+
+case class WorkerAssignmentPrint extends AggregationOperation[(Boolean, List[(Int, Int)])] {
+  val neutralElement: (Boolean, List[(Int, Int)]) = (true, List())
+  def extract(v: Vertex[_, _]): ((Boolean, List[(Int, Int)])) = v match {
+    case vertex: ApproxBestResponseVertex[Int, Int] => (vertex.scoreSignal == 0 && vertex.scoreCollect == 0, List((vertex.id, vertex.id.hashCode % 8)))
+    case vertex: GreedyExplorer => (vertex.scoreSignal == 0 && vertex.scoreCollect == 0, List((vertex.id, vertex.id.hashCode % 8)))
+    case vertex: LowMemoryDsa => (vertex.currentConflicts == 0, List((vertex.id, vertex.id.hashCode % 8)))
+    case other => neutralElement
+  }
+  def reduce(elements: Stream[(Boolean, List[(Int, Int)])]) = {
+    elements.foldLeft(neutralElement)(aggregate)
+  }
+
+  def aggregate(a: (Boolean, List[(Int, Int)]), b: (Boolean, List[(Int, Int)])) = (a._1 && b._1, a._2 ++ b._2)
+}
+
+//class ColorsTopKFinder[State](k: Int)(implicit ord: Ordering[State])
+//  extends ComplexAggregation[Iterable[(_, State)], Iterable[(_, State)]] {
+//
+//  implicit val ordering = Ordering.by((value: (_, State)) => value._2)
+//
+//  def aggregationOnWorker(vertices: Stream[Vertex[_, _]]): Iterable[(_, State)] = {
+//    def extract(v: Vertex[_, _]): (_, State) = {
+//      v match {
+//        case vertex: Vertex[_, State] => (vertex.id, vertex.state)
+//      }
+//    }
+//    val threadName = Thread.currentThread.getName
+//    val values = (vertices map (extract(_)))
+//    selectTopK(k, values)
+//  }
+//
+//  protected def selectTopK[G: ClassTag](k: Int, items: Stream[G])(implicit ord: Ordering[G]): Iterable[G] = {
+//    val startTime = System.currentTimeMillis
+//    var counter = 0
+//    val topK = new PriorityQueue[G]()(ord.reverse)
+//    for (item <- items) {
+//      counter += 1
+//      if (topK.size < k) {
+//        topK += item
+//      } else {
+//        if (ord.compare(topK.head, item) < 0) {
+//          topK.dequeue
+//          topK += item
+//        }
+//      }
+//    }
+//    topK.toArray[G]
+//  }
+//
+//  def aggregationOnCoordinator(workerResults: Iterable[Iterable[(_, State)]]): Iterable[(_, State)] = {
+//    val startTime = System.currentTimeMillis
+//    def timePassedInSeconds = System.currentTimeMillis - System.currentTimeMillis
+//    val values = workerResults.toStream.flatMap(identity)
+//    val topK = (selectTopK(k, values)).toArray
+//    Sorting.quickSort[(_, State)](topK)(ordering.reverse)
+//    topK
+//  }
+//
+//}
+
+//class Visualizer extends AggregationOperation[List[(Any, String)]] {
+//  val neutralElement: List[(Any, String)] = List()
+//  def extract(v: Vertex[_, _]): List[(Any, String)] = v match {
+//    case vertex: ApproxBestResponseVertex[_,_] =>  List((vertex.id, vertex.state.toString+" "+vertex.existsBetterStateUtility.toString))
+//    case other => List((v.id, v.state.toString))
+//  }
+//  def reduce(elements: Stream[List[(Any, String)]]): List[(Any, String)] = elements.foldLeft(neutralElement)(aggregate)
+//  def aggregate(a: List[(Any, String)], b: List[(Any, String)]): List[(Any, String)] = a ++ b
+//
+//}
 
 class NashEquilibrium extends AggregationOperation[Boolean] {
   val neutralElement = true
@@ -211,18 +299,53 @@ class DSANGlobalTerminationCondition(
   g: java.io.FileWriter,*/
   startTime: Long,
   aggregationOperation: AggregationOperation[(Int, Double)],
-  aggregationInterval: Long) extends GlobalTerminationCondition[(Int, Double)](aggregationOperation, aggregationInterval)
+  aggregationInterval: Long) extends GlobalTerminationCondition[(Int, Double)](aggregationOperation, aggregationInterval, (aggregate: (Int, Double)) => if (aggregate._1 - aggregate._2 < 0.001) true else false)
   with Serializable {
+
   def shouldTerminate(aggregate: (Int, Double)): Boolean = {
     if (aggregate._1 - aggregate._2 < 0.001) true
     else {
-//      f.write(aggregate._1 - aggregate._2 + " ")
-//      g.write((System.nanoTime() - startTime).toString + " ")
-//      print(aggregate._1 - aggregate._2 + " " + (System.nanoTime() - startTime).toString + "; ")
+      //      f.write(aggregate._1 - aggregate._2 + " ")
+      //      g.write((System.nanoTime() - startTime).toString + " ")
+      //      print(aggregate._1 - aggregate._2 + " " + (System.nanoTime() - startTime).toString + "; ")
 
       false
     }
   }
+
+}
+
+object printer {
+  def shouldTerminate(f: java.io.FileWriter)(aggregate: (Boolean, List[(Int, Int)])): Boolean = {
+    val sorted = aggregate._2.sortBy(x => x._1)
+    val valuesInLine = 100
+    sorted.foreach {
+      case (id, color) => 
+        f.write(color.toString)
+        //print(color)
+        if ((id + 1) % valuesInLine == 0) {
+          f.write("\n")
+          //println
+        } else {
+          f.write(",")
+          //print(",")
+        }
+    }
+    f.write("\n")
+    //println
+    println("****"+aggregate._1)
+    aggregate._1
+  }
+}
+
+class DSANGlobalTerminationConditionPrint(
+  f: java.io.FileWriter,
+  /*g: java.io.FileWriter,*/
+  startTime: Long,
+  aggregationOperation: AggregationOperation[(Boolean, List[(Int, Int)])],
+  aggregationInterval: Long) extends GlobalTerminationCondition[(Boolean, List[(Int, Int)])](aggregationOperation, aggregationInterval, printer.shouldTerminate(f))
+  with Serializable {
+
 }
 
 /** Builds an agents graph and executes the computation */
